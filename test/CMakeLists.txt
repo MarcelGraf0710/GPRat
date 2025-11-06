@@ -9,8 +9,13 @@ endif()
 
 # Option for GPU support with CUDA, cuSolver, cuBLAS
 option(GPRAT_WITH_CUDA "Enable GPU support with CUDA, cuSolver, cuBLAS" OFF)
+option(GPRAT_WITH_SYCL "Enable SYCL support with oneMath" OFF)
+
 # Pass variable to C++ code
-add_compile_definitions(GPRAT_WITH_CUDA=$<BOOL:${GPRAT_WITH_CUDA}>)
+add_compile_definitions(
+  GPRAT_WITH_CUDA=$<BOOL:${GPRAT_WITH_CUDA}>
+  GPRAT_WITH_SYCL=$<BOOL:${GPRAT_WITH_SYCL}>
+)
 
 include(FetchContent)
 

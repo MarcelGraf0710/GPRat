@@ -8,9 +8,15 @@
 #include <string>
 #include <vector>
 
+#if GPRAT_WITH_SYCL
+#include "sycl/sycl_utils.hpp"
+#endif
+
 // namespace for GPRat library entities
 namespace gprat
 {
+
+// struct GP_data /////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * @brief Data structure for Gaussian Process data
@@ -44,6 +50,8 @@ struct GP_data
     GP_data(const std::string &file_path, int n, int n_reg);
 };
 
+// class GP ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 /**
  * @brief Gaussian Process class for regression tasks
  *
@@ -54,6 +62,7 @@ struct GP_data
 class GP
 {
   private:
+
     /** @brief Input data for training */
     std::vector<double> training_input_;
 
@@ -78,6 +87,9 @@ class GP
     std::shared_ptr<Target> target_;
 
   public:
+
+    /* Member variables */
+
     /** @brief Number of regressors */
     int n_reg;
 
@@ -85,6 +97,8 @@ class GP
      * @brief Hyperarameters of the squared exponential kernel
      */
     gprat_hyper::SEKParams kernel_params;
+
+    /* Constructors */
 
     /**
      * @brief Constructs a Gaussian Process (GP)
@@ -154,6 +168,36 @@ class GP
        std::vector<bool> trainable_bool,
        int gpu_id,
        int n_streams);
+
+   #if GPRAT_WITH_SYCL
+
+    /**
+     * @brief Constructs a Gaussian Process (GP) for SYCL computations
+     *
+     * @param input Input data for training of the GP
+     * @param output Expected output data for training of the GP
+     * @param n_tiles Number of tiles
+     * @param n_tile_size Size of each tile in each dimension
+     * @param n_regressors Number of regressors
+     * @param kernel_hyperparams Vector including lengthscale,
+     *                           vertical lengthscale, and noise variance
+     *                           parameter of squared exponential kernel
+     * @param trainable_bool Vector indicating which parameters are trainable
+     * @param gpu_id GPU identifier
+     * @param n_streams Number of CUDA streams for GPU computations
+     */
+    GP(std::vector<double> input,
+       std::vector<double> output,
+       int n_tiles,
+       int n_tile_size,
+       int n_regressors,
+       std::vector<double> kernel_hyperparams,
+       std::vector<bool> trainable_bool,
+       const DeviceParameters &parameters);
+
+   #endif
+
+    /* Member variables */
 
     /**
      * Returns Gaussian Process attributes as string.
@@ -226,6 +270,7 @@ class GP
      */
     std::vector<std::vector<double>> cholesky();
 };
+
 }  // namespace gprat
 
 #endif  // end of GPRAT_C_H

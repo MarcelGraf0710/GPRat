@@ -1,9 +1,9 @@
-#include "gpu/gp_algorithms.cuh"
+#include "gpu/cuda/gp_algorithms.cuh"
 
 #include "gp_kernels.hpp"
-#include "gpu/cuda_kernels.cuh"
-#include "gpu/cuda_utils.cuh"
-#include "gpu/gp_optimizer.cuh"
+#include "gpu/cuda/cuda_kernels.cuh"
+#include "gpu/cuda/cuda_utils.cuh"
+#include "gpu/cuda/gp_optimizer.cuh"
 #include "target.hpp"
 #include <cuda_runtime.h>
 #include <hpx/algorithm.hpp>
@@ -12,6 +12,7 @@
 namespace gpu
 {
 
+// 8< /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Kernel function to compute covariance
 __global__ void gen_tile_covariance_kernel(
     double *d_tile,
@@ -53,6 +54,7 @@ __global__ void gen_tile_covariance_kernel(
         d_tile[i * n_tile_size + j] = covariance;
     }
 }
+// 8< /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 double *gen_tile_covariance(const double *d_input,
                             const std::size_t tile_row,
@@ -78,6 +80,7 @@ double *gen_tile_covariance(const double *d_input,
     return d_tile;
 }
 
+// 8< /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 __global__ void gen_tile_full_prior_covariance_kernel(
     double *d_tile,
     const double *d_input,
@@ -110,6 +113,7 @@ __global__ void gen_tile_full_prior_covariance_kernel(
         d_tile[i * n_tile_size + j] = covariance;
     }
 }
+// 8< /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 double *gen_tile_full_prior_covariance(
     const double *d_input,
@@ -136,6 +140,7 @@ double *gen_tile_full_prior_covariance(
     return d_tile;
 }
 
+// 8< /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 __global__ void gen_tile_prior_covariance_kernel(
     double *d_tile,
     const double *d_input,
@@ -167,6 +172,7 @@ __global__ void gen_tile_prior_covariance_kernel(
         d_tile[i] = covariance;
     }
 }
+// 8< /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 double *gen_tile_prior_covariance(
     const double *d_input,
@@ -193,6 +199,7 @@ double *gen_tile_prior_covariance(
     return d_tile;
 }
 
+// 8< /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 __global__ void gen_tile_cross_covariance_kernel(
     double *d_tile,
     const double *d_row_input,
@@ -226,6 +233,7 @@ __global__ void gen_tile_cross_covariance_kernel(
         d_tile[i * n_column_tile_size + j] = covariance;
     }
 }
+// 8< /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 double *gen_tile_cross_covariance(
     const double *d_row_input,
@@ -283,6 +291,7 @@ hpx::shared_future<double *> gen_tile_cross_cov_T(std::size_t n_row_tile_size,
     return hpx::make_ready_future(transposed);
 }
 
+// 8< /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 __global__ void gen_tile_output_kernel(double *tile, const double *output, std::size_t row, std::size_t n_tile_size)
 {
     unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -292,6 +301,7 @@ __global__ void gen_tile_output_kernel(double *tile, const double *output, std::
         tile[i] = output[i_global];
     }
 }
+// 8< /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 double *
 gen_tile_output(const std::size_t row, const std::size_t n_tile_size, const double *d_output, gprat::CUDA_GPU &gpu)

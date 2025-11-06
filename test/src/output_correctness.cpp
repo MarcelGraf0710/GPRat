@@ -287,6 +287,7 @@ TEST_CASE("GP GPU results match known-good values (no loss)", "[integration][gpu
 
     using Catch::Matchers::WithinRel;
     double eps = std::numeric_limits<double>::epsilon() * 1'000'000;
+
     for (std::size_t i = 0, n = results.choleksy.size(); i != n; ++i)
     {
         for (std::size_t j = 0, m = results.choleksy[i].size(); j != m; ++j)
@@ -300,6 +301,10 @@ TEST_CASE("GP GPU results match known-good values (no loss)", "[integration][gpu
     {
         for (std::size_t j = 0, m = results.sum_no_optimize[i].size(); j != m; ++j)
         {
+
+            // FIXME
+            printf("results.sum_no_optimize[i][j] = %f\n", results.sum_no_optimize[i][j]);
+            printf("expected_results.sum_no_optimize[i][j] = %f\n", expected_results.sum_no_optimize[i][j]);
             INFO("GPU sum_no_optimize " << i << " " << j);
             REQUIRE_THAT(results.sum_no_optimize[i][j], WithinRel(expected_results.sum_no_optimize[i][j], eps));
         }

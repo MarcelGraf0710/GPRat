@@ -187,7 +187,23 @@
       "cacheVariables": {
         "GPRAT_WITH_CUDA": "ON"
       }
+    },
+    {
+      "name": "dev-linux-sycl",
+      "binaryDir": "${sourceDir}/build/dev-linux-sycl",
+      "inherits": ["dev-linux"],
+      "cacheVariables": {
+        "GPRAT_WITH_SYCL": "ON"
+      }
+    },
+    {
+    "name": "release-linux-sycl",
+    "binaryDir": "${sourceDir}/build/release-linux-sycl",
+    "inherits": ["release-linux"],
+    "cacheVariables": {
+      "GPRAT_WITH_SYCL": "ON"
     }
+  }
   ],
   "buildPresets": [
     {
@@ -208,6 +224,16 @@
     {
       "name": "release-linux-gpu",
       "configurePreset": "release-linux-gpu",
+      "configuration": "Release"
+    },
+    {
+      "name": "dev-linux-sycl",
+      "configurePreset": "dev-linux-sycl",
+      "configuration": "Debug"
+    },
+    {
+      "name": "release-linux-sycl",
+      "configurePreset": "release-linux-sycl",
       "configuration": "Release"
     }
   ],

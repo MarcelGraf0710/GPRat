@@ -1,6 +1,6 @@
 #!/bin/bash
 # $1: python/cpp
-# $2: cpu/gpu
+# $2: cpu/gpu/sycl
 # $3: mkl
 ################################################################################
 set -e  # Exit immediately if a command exits with a non-zero status.
@@ -33,6 +33,11 @@ elif [[ "$2" == "gpu" ]]; then
     PRESET=release-linux-gpu
     # Debug:
     #PRESET=dev-linux-gpu
+elif [[ "$2" == "sycl" ]]; then
+    # Release:
+    PRESET=release-linux-sycl
+    # Debug:
+    PRESET=dev-linux-sycl
 elif [[ "$2" != "cpu" ]]; then
     echo "Input parameter is missing. Using default: Run computations on CPU in Release mode"
     PRESET=release-linux
@@ -45,6 +50,14 @@ then
 else
     USE_MKL=OFF
 fi
+
+# simcl1
+# spack_destination="/scratch-simcl1/grafml/Programs/spack-fp2-simcl1n1"
+# source $spack_destination/spack/share/spack/setup-env.sh
+
+# pcsgs
+spack_destination="/home/grafml/spack"
+source $spack_destination/share/spack/setup-env.sh
 
 if command -v spack &> /dev/null; then
     echo "Spack command found, checking for environments..."
@@ -75,16 +88,17 @@ if command -v spack &> /dev/null; then
 	    spack env activate gprat_cpu_arm
 	fi
 	USE_MKL=OFF
-    elif [[ "$HOSTNAME" == "simcl1n1" || "$HOSTNAME" == "simcl1n2" ]]; then
+    elif [[ "$HOSTNAME" == "simcl1n1" || "$HOSTNAME" == "simcl1n2" || "$HOSTNAME" == "simcl1n4" || "$HOSTNAME" == "pcsgs05" ]]; then
 	# Check if the gprat_gpu_clang environment exists
 	if spack env list | grep -q "gprat_gpu_clang"; then
 	    echo "Found gprat_gpu_clang environment, activating it."
-	    module load clang/17.0.1
+	    #module load clang/17.0.1
 	    export CXX=clang++
 	    export CC=clang
-	    module load cuda/12.0.1
+#	    module load cuda/12.0.1
 	    spack env activate gprat_gpu_clang
-	    GPRAT_WITH_CUDA=ON
+	    GPRAT_WITH_CUDA=OFF
+		GPRAT_WITH_SYCL=ON
 	fi
     else
     	echo "Hostname is $HOSTNAME — no action taken."
@@ -105,23 +119,38 @@ if [[ $PRESET == "release-linux" || $PRESET == "dev-linux" ]]; then
 elif [[ $PRESET == "release-linux-gpu" || $PRESET == "dev-linux-gpu" ]]; then
     CUDA_ARCH=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader | awk -F '.' '{print $1$2}')
 
+cmake --preset $PRESET \
+	-DGPRAT_BUILD_BINDINGS=$BINDINGS \
+	-DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
+	-DHPX_IGNORE_BOOST_COMPATIBILITY=ON \
+	-DGPRAT_ENABLE_FORMAT_TARGETS=OFF \
+    -DGPRAT_ENABLE_MKL=$USE_MKL \
+	-DCMAKE_C_COMPILER=$(which clang) \
+    -DCMAKE_CXX_COMPILER=$(which clang++) \
+    -DCMAKE_CUDA_COMPILER=$(which clang++) \
+    -DCMAKE_CUDA_FLAGS=--cuda-path=${CUDA_HOME} \
+    -DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH}
+   
+elif [[ $PRESET == "release-linux-sycl" || $PRESET == "dev-linux-sycl" ]]; then
+    CUDA_ARCH=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader | awk -F '.' '{print $1$2}')
+
     cmake --preset $PRESET \
 	-DGPRAT_BUILD_BINDINGS=$BINDINGS \
 	-DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
 	-DHPX_IGNORE_BOOST_COMPATIBILITY=ON \
 	-DGPRAT_ENABLE_FORMAT_TARGETS=OFF \
-        -DGPRAT_ENABLE_MKL=$USE_MKL \
-	-DCMAKE_C_COMPILER=$(which clang) \
-        -DCMAKE_CXX_COMPILER=$(which clang++) \
-        -DCMAKE_CUDA_COMPILER=$(which clang++) \
-        -DCMAKE_CUDA_FLAGS=--cuda-path=${CUDA_HOME} \
-        -DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH}
+    -DGPRAT_ENABLE_MKL=$USE_MKL \
+	-DCMAKE_C_COMPILER=$(which icx) \
+    -DCMAKE_CXX_COMPILER=$(which icpx) \
+	-DGPRAT_WITH_SYCL=ON \
+	-DGPRAT_ENABLE_TESTS=OFF \
+	-DGPRAT_ENABLE_EXAMPLES=OFF 
 fi
 
 ################################################################################
 # Compile code
 ################################################################################
-cmake --build --preset $PRESET -- -j
+cmake --build --preset $PRESET -- -j 1
 cmake --install build/$PRESET
 
 cd build/$PRESET
