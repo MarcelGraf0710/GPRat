@@ -22,7 +22,7 @@ hpx::shared_future<double *> diag_posterior(
         oneapi::math::transpose::nontrans,
         oneapi::math::transpose::nontrans,
         1,
-        M,
+        static_cast<int64_t>(M),
         1.0,
         A.get(),
         1,
@@ -52,10 +52,10 @@ hpx::shared_future<double *> diag_tile(
         queue,
         oneapi::math::transpose::nontrans,
         1,                                  
-        M,                                  
+        static_cast<int64_t>(M),                                  
         1.0,
         A.get(),
-        M + 1,
+        static_cast<int64_t>(M) + 1,
         diag_tile,
         1 
     );

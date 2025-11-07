@@ -150,7 +150,7 @@ fi
 ################################################################################
 # Compile code
 ################################################################################
-cmake --build --preset $PRESET -- -j 1
+cmake --build --preset $PRESET -- -j
 cmake --install build/$PRESET
 
 cd build/$PRESET

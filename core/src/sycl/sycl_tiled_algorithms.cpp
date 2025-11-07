@@ -24,16 +24,16 @@ void right_looking_cholesky_tiled(
         queue = sycl_device.next_queue();
 
         // POTRF
-        ft_tiles[k * n_tiles + k] = hpx::dataflow(
+        ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)] = hpx::dataflow(
             [&](){ return potrf(
             queue,
-            ft_tiles[k * n_tiles + k],
+            ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)],
             n_tile_size); }
         );
 
         // NOTE: The result is immediately needed by TRSM. Also TRSM may throw
         // an error otherwise.
-        ft_tiles[k * n_tiles + k].get();
+        ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)].get();
 
         for (std::size_t m = k + 1; m < n_tiles; ++m)
         {
@@ -43,7 +43,7 @@ void right_looking_cholesky_tiled(
             ft_tiles[m * n_tiles + k] = hpx::dataflow(
                 [&](){ return trsm(
                 queue,
-                ft_tiles[k * n_tiles + k],
+                ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)],
                 ft_tiles[m * n_tiles + k],
                 n_tile_size,
                 n_tile_size,
@@ -101,7 +101,7 @@ void forward_solve_tiled(
         ft_rhs[k] = hpx::dataflow(
             [&]() { return trsv( 
             queue, 
-            ft_tiles[k * n_tiles + k], 
+            ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)], 
             ft_rhs[k], 
             n_tile_size, 
             oneapi::math::transpose::nontrans
@@ -140,16 +140,16 @@ void backward_solve_tiled(
     // usage negative numbers. Therefore they use signed int instead of the
     // unsigned std::size_t.
 
-    for (int k = n_tiles - 1; k >= 0; k--)
+    for (int k = static_cast<int>(n_tiles) - 1; k >= 0; k--)
     {
         queue = sycl_device.next_queue();
 
         // TRSM: Solve L^T * x = a
-        ft_rhs[k] = hpx::dataflow(
+        ft_rhs[static_cast<std::size_t>(k)] = hpx::dataflow(
             [&]() { return trsv(
             queue, 
-            ft_tiles[k * n_tiles + k], 
-            ft_rhs[k], 
+            ft_tiles[static_cast<std::size_t>(static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k))], 
+            ft_rhs[static_cast<std::size_t>(k)], 
             n_tile_size, 
             oneapi::math::transpose::trans
         ); } );
@@ -159,12 +159,12 @@ void backward_solve_tiled(
             queue = sycl_device.next_queue();
 
             // GEMV: b = b - A^T * a
-            ft_rhs[m] = hpx::dataflow(
+            ft_rhs[static_cast<std::size_t>(m)] = hpx::dataflow(
                 [&]() { return gemv(
                 queue,
-                ft_tiles[k * n_tiles + m],
-                ft_rhs[k],
-                ft_rhs[m],
+                ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(m)],
+                ft_rhs[static_cast<std::size_t>(k)],
+                ft_rhs[static_cast<std::size_t>(m)],
                 n_tile_size,
                 n_tile_size,
                 -1,
@@ -193,12 +193,12 @@ void forward_solve_tiled_matrix(
             queue = sycl_device.next_queue();
 
             // TRSM: solve L * X = A
-            ft_rhs[k * m_tiles + c] = hpx::dataflow(
+            ft_rhs[static_cast<std::size_t>(static_cast<std::size_t>(k * m_tiles + c))] = hpx::dataflow(
                 [&]() {
                 return trsm(
                 queue,
-                ft_tiles[k * n_tiles + k],
-                ft_rhs[k * m_tiles + c],
+                ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)],
+                ft_rhs[static_cast<std::size_t>(k * m_tiles + c)],
                 n_tile_size,
                 m_tile_size,
                 oneapi::math::transpose::nontrans,
@@ -214,7 +214,7 @@ void forward_solve_tiled_matrix(
                     [&]() { return gemm(
                     queue,
                     ft_tiles[m * n_tiles + k],
-                    ft_rhs[k * m_tiles + c],
+                    ft_rhs[static_cast<std::size_t>(k * m_tiles + c)],
                     ft_rhs[m * m_tiles + c],
                     n_tile_size,
                     m_tile_size,
@@ -246,12 +246,12 @@ void backward_solve_tiled_matrix(
             queue = sycl_device.next_queue();
 
             // TRSM: solve L^T * X = A
-            ft_rhs[k * m_tiles + c] = hpx::dataflow(
+            ft_rhs[static_cast<std::size_t>(k * m_tiles + c)] = hpx::dataflow(
                 [&]() {
                 return trsm(
                 queue,
-                ft_tiles[k * n_tiles + k],
-                ft_rhs[k * m_tiles + c],
+                ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)],
+                ft_rhs[static_cast<std::size_t>(k * m_tiles + c)],
                 n_tile_size,
                 m_tile_size,
                 oneapi::math::transpose::trans,
@@ -268,7 +268,7 @@ void backward_solve_tiled_matrix(
                     return gemm(
                     queue,
                     ft_tiles[k * n_tiles + m],
-                    ft_rhs[k * m_tiles + c],
+                    ft_rhs[static_cast<std::size_t>(k * m_tiles + c)],
                     ft_rhs[m * m_tiles + c],
                     n_tile_size,
                     m_tile_size,
@@ -396,7 +396,7 @@ hpx::shared_future<double> compute_loss_tiled(
     for (std::size_t k = 0; k < n_tiles; k++)
     {
         loss_tiled[k] =
-            hpx::dataflow([&](){ return compute_loss(ft_tiles[k * n_tiles + k], ft_alpha[k], ft_y[k], n_tile_size, std::ref(sycl_device)); } );
+            hpx::dataflow([&](){ return compute_loss(ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)], ft_alpha[k], ft_y[k], n_tile_size, std::ref(sycl_device)); } );
     }
 
     return hpx::dataflow(&add_losses, loss_tiled, n_tile_size, n_tiles);
@@ -494,108 +494,110 @@ void update_grad_K_tiled_mkl(
 }
 
 static double update_hyperparameter(
-    const std::vector<hpx::shared_future<double *>> &ft_invK,
-    const std::vector<hpx::shared_future<double *>> &ft_gradparam,
-    const std::vector<hpx::shared_future<double *>> &ft_alpha,
-    double &hyperparameter,  // lengthscale or vertical-lengthscale
-    gprat_hyper::SEKParams sek_params,
-    gprat_hyper::AdamParams adam_params,
-    const std::size_t n_tile_size,
-    const std::size_t n_tiles,
-    std::vector<hpx::shared_future<double>> &m_T,
-    std::vector<hpx::shared_future<double>> &v_T,
-    const std::vector<hpx::shared_future<double>> &beta1_T,
-    const std::vector<hpx::shared_future<double>> &beta2_T,
-    int iter,
-    int param_idx,  // 0 for lengthscale, 1 for vertical-lengthscale
-    gprat::SYCL_DEVICE &sycl_device)
+    // const std::vector<hpx::shared_future<double *>> &ft_invK,
+    // const std::vector<hpx::shared_future<double *>> &ft_gradparam,
+    // const std::vector<hpx::shared_future<double *>> &ft_alpha,
+    // double &hyperparameter,  // lengthscale or vertical-lengthscale
+    // gprat_hyper::SEKParams sek_params,
+    // gprat_hyper::AdamParams adam_params,
+    // const std::size_t n_tile_size,
+    // const std::size_t n_tiles,
+    // std::vector<hpx::shared_future<double>> &m_T,
+    // std::vector<hpx::shared_future<double>> &v_T,
+    // const std::vector<hpx::shared_future<double>> &beta1_T,
+    // const std::vector<hpx::shared_future<double>> &beta2_T,
+    // int iter,
+    // int param_idx,  // 0 for lengthscale, 1 for vertical-lengthscale
+    // gprat::SYCL_DEVICE &sycl_device
+)
 {
     throw std::logic_error("Function not implemented for GPU");
     // return 0;
 }
 
 double update_lengthscale(
-    const std::vector<hpx::shared_future<double *>> &ft_invK,
-    const std::vector<hpx::shared_future<double *>> &ft_gradparam,
-    const std::vector<hpx::shared_future<double *>> &ft_alpha,
-    gprat_hyper::SEKParams sek_params,
-    gprat_hyper::AdamParams adam_params,
-    const std::size_t n_tile_size,
-    const std::size_t n_tiles,
-    std::vector<hpx::shared_future<double>> &m_T,
-    std::vector<hpx::shared_future<double>> &v_T,
-    const std::vector<hpx::shared_future<double>> &beta1_T,
-    const std::vector<hpx::shared_future<double>> &beta2_T,
-    int iter,
-    gprat::SYCL_DEVICE &sycl_device)
+    // const std::vector<hpx::shared_future<double *>> &ft_invK,
+    // const std::vector<hpx::shared_future<double *>> &ft_gradparam,
+    // const std::vector<hpx::shared_future<double *>> &ft_alpha,
+    // gprat_hyper::SEKParams sek_params,
+    // gprat_hyper::AdamParams adam_params,
+    // const std::size_t n_tile_size,
+    // const std::size_t n_tiles,
+    // std::vector<hpx::shared_future<double>> &m_T,
+    // std::vector<hpx::shared_future<double>> &v_T,
+    // const std::vector<hpx::shared_future<double>> &beta1_T,
+    // const std::vector<hpx::shared_future<double>> &beta2_T,
+    // int iter,
+    // gprat::SYCL_DEVICE &sycl_device
+)
 {
     return update_hyperparameter(
-        ft_invK,
-        ft_gradparam,
-        ft_alpha,
-        sek_params.lengthscale,
-        sek_params,
-        adam_params,
-        n_tile_size,
-        n_tiles,
-        m_T,
-        v_T,
-        beta1_T,
-        beta2_T,
-        iter,
-        0,
-        sycl_device
+        // ft_invK,
+        // ft_gradparam,
+        // ft_alpha,
+        // sek_params.lengthscale,
+        // sek_params,
+        // adam_params,
+        // n_tile_size,
+        // n_tiles,
+        // m_T,
+        // v_T,
+        // beta1_T,
+        // beta2_T,
+        // iter,
+        // 0,
+        // sycl_device
     );
 }
 
 double update_vertical_lengthscale(
-    const std::vector<hpx::shared_future<double *>> &ft_invK,
-    const std::vector<hpx::shared_future<double *>> &ft_gradparam,
-    const std::vector<hpx::shared_future<double *>> &ft_alpha,
-    gprat_hyper::SEKParams sek_params,
-    gprat_hyper::AdamParams adam_params,
-    const std::size_t n_tile_size,
-    const std::size_t n_tiles,
-    std::vector<hpx::shared_future<double>> &m_T,
-    std::vector<hpx::shared_future<double>> &v_T,
-    const std::vector<hpx::shared_future<double>> &beta1_T,
-    const std::vector<hpx::shared_future<double>> &beta2_T,
-    int iter,
-    gprat::SYCL_DEVICE &sycl_device
+    // const std::vector<hpx::shared_future<double *>> &ft_invK,
+    // const std::vector<hpx::shared_future<double *>> &ft_gradparam,
+    // const std::vector<hpx::shared_future<double *>> &ft_alpha,
+    // gprat_hyper::SEKParams sek_params,
+    // gprat_hyper::AdamParams adam_params,
+    // const std::size_t n_tile_size,
+    // const std::size_t n_tiles,
+    // std::vector<hpx::shared_future<double>> &m_T,
+    // std::vector<hpx::shared_future<double>> &v_T,
+    // const std::vector<hpx::shared_future<double>> &beta1_T,
+    // const std::vector<hpx::shared_future<double>> &beta2_T,
+    // int iter,
+    // gprat::SYCL_DEVICE &sycl_device
 )
 {
     return update_hyperparameter(
-        ft_invK,
-        ft_gradparam,
-        ft_alpha,
-        sek_params.vertical_lengthscale,
-        sek_params,
-        adam_params,
-        n_tile_size,
-        n_tiles,
-        m_T,
-        v_T,
-        beta1_T,
-        beta2_T,
-        iter,
-        1,
-        sycl_device
+        // ft_invK,
+        // ft_gradparam,
+        // ft_alpha,
+        // sek_params.vertical_lengthscale,
+        // sek_params,
+        // adam_params,
+        // n_tile_size,
+        // n_tiles,
+        // m_T,
+        // v_T,
+        // beta1_T,
+        // beta2_T,
+        // iter,
+        // 1,
+        // sycl_device
     );
 }
 
 double update_noise_variance(
-    const std::vector<hpx::shared_future<double *>> &ft_invK,
-    const std::vector<hpx::shared_future<double *>> &ft_alpha,
-    gprat_hyper::SEKParams sek_params,
-    gprat_hyper::AdamParams adam_params,
-    const std::size_t n_tile_size,
-    const std::size_t n_tiles,
-    std::vector<hpx::shared_future<double>> &m_T,
-    std::vector<hpx::shared_future<double>> &v_T,
-    const std::vector<hpx::shared_future<double>> &beta1_T,
-    const std::vector<hpx::shared_future<double>> &beta2_T,
-    int iter,
-    gprat::SYCL_DEVICE &sycl_device
+    // const std::vector<hpx::shared_future<double *>> &ft_invK,
+    // const std::vector<hpx::shared_future<double *>> &ft_alpha,
+    // gprat_hyper::SEKParams sek_params,
+    // gprat_hyper::AdamParams adam_params,
+    // const std::size_t n_tile_size,
+    // const std::size_t n_tiles,
+    // std::vector<hpx::shared_future<double>> &m_T,
+    // std::vector<hpx::shared_future<double>> &v_T,
+    // const std::vector<hpx::shared_future<double>> &beta1_T,
+    // const std::vector<hpx::shared_future<double>> &beta2_T,
+    // int iter,
+    // gprat::SYCL_DEVICE &sycl_device
 )
 {
     throw std::logic_error("Function not implemented for GPU");

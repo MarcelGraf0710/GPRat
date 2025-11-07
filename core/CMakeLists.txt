@@ -113,7 +113,21 @@ if(GPRAT_WITH_SYCL)
   find_package(oneMath REQUIRED)
 
   # simcl1
-  target_compile_options(gprat_core PRIVATE -fsycl -Xsycl-target-backend --fsycl-targets=sm_80)
+  # Apply SYCL compile options only to SYCL source files
+  foreach(sycl_src
+      src/sycl/adapter_onemath.cpp
+      src/sycl/sycl_gp_algorithms.cpp
+      src/sycl/sycl_gp_functions.cpp
+      src/sycl/sycl_gp_optimizer.cpp
+      src/sycl/sycl_gp_uncertainty.cpp
+      src/sycl/sycl_kernels.cpp
+      src/sycl/sycl_tiled_algorithms.cpp
+  )
+    set_source_files_properties(${sycl_src}
+        PROPERTIES
+        COMPILE_OPTIONS "-fsycl;-fsycl-targets=nvptx64-nvidia-cuda;-Xsycl-target-backend=nvptx64-nvidia-cuda;--cuda-gpu-arch=sm_80"
+    )
+  endforeach()
 
   # target_link_options(gprat_core PRIVATE -Xsycl-target-backend --fsycl-targets=sm_80)
 

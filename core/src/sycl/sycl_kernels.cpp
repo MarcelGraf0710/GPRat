@@ -72,9 +72,9 @@ n_tile_size(n_tile_size),
 n_regressors(n_regressors),
 tile_row(tile_row),
 tile_column(tile_column),
+lengthscale_(sek_params.lengthscale),
 vertical_lengthscale_(sek_params.vertical_lengthscale),
-noise_variance_(sek_params.noise_variance),
-lengthscale_(sek_params.lengthscale)
+noise_variance_(sek_params.noise_variance)
 {}
 
 // Done, check if compiles
@@ -122,9 +122,9 @@ n_tile_size(n_tile_size),
 n_regressors(n_regressors),
 tile_row(tile_row),
 tile_column(tile_column),
-vertical_lengthscale_(sek_params.vertical_lengthscale),
-lengthscale_(sek_params.lengthscale)
-{};
+lengthscale_(sek_params.lengthscale),
+vertical_lengthscale_(sek_params.vertical_lengthscale)
+{}
 
 // Done, check if compiles
 // Launch over range [0, n_tile_size] x [0, n_tile_size]
@@ -169,8 +169,8 @@ n_tile_size(n_tile_size),
 n_regressors(n_regressors),
 tile_row(tile_row),
 tile_column(tile_column),
-vertical_lengthscale_(sek_params.vertical_lengthscale),
-lengthscale_(sek_params.lengthscale)
+lengthscale_(sek_params.lengthscale),
+vertical_lengthscale_(sek_params.vertical_lengthscale)
 {}
 
 // Done, check if compiles
@@ -216,8 +216,8 @@ n_column_tile_size(n_column_tile_size),
 tile_row(tile_row),
 tile_column(tile_column),
 n_regressors(n_regressors),
-vertical_lengthscale_(sek_params.vertical_lengthscale),
-lengthscale_(sek_params.lengthscale)
+lengthscale_(sek_params.lengthscale),
+vertical_lengthscale_(sek_params.vertical_lengthscale)
 {}
 
 // Done, check if compiles

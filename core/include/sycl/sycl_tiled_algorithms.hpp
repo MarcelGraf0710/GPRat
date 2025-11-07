@@ -240,19 +240,19 @@ void update_grad_K_tiled_mkl(
  * @return The updated hyperparameter
  */
 double update_lengthscale(
-    const std::vector<hpx::shared_future<double *>> &ft_invK,
-    const std::vector<hpx::shared_future<double *>> &ft_gradparam,
-    const std::vector<hpx::shared_future<double *>> &ft_alpha,
-    gprat_hyper::SEKParams sek_params,
-    gprat_hyper::AdamParams adam_params,
-    const std::size_t n_tile_size,
-    const std::size_t n_tiles,
-    std::vector<hpx::shared_future<double>> &m_T,
-    std::vector<hpx::shared_future<double>> &v_T,
-    const std::vector<hpx::shared_future<double>> &beta1_T,
-    const std::vector<hpx::shared_future<double>> &beta2_T,
-    int iter,
-    gprat::SYCL_DEVICE &sycl_device
+    // const std::vector<hpx::shared_future<double *>> &ft_invK,
+    // const std::vector<hpx::shared_future<double *>> &ft_gradparam,
+    // const std::vector<hpx::shared_future<double *>> &ft_alpha,
+    // gprat_hyper::SEKParams sek_params,
+    // gprat_hyper::AdamParams adam_params,
+    // const std::size_t n_tile_size,
+    // const std::size_t n_tiles,
+    // std::vector<hpx::shared_future<double>> &m_T,
+    // std::vector<hpx::shared_future<double>> &v_T,
+    // const std::vector<hpx::shared_future<double>> &beta1_T,
+    // const std::vector<hpx::shared_future<double>> &beta2_T,
+    // int iter,
+    // gprat::SYCL_DEVICE &sycl_device
 );
 
 /**
@@ -276,19 +276,19 @@ double update_lengthscale(
  * @return The updated hyperparameter
  */
 double update_vertical_lengthscale(
-    const std::vector<hpx::shared_future<double *>> &ft_invK,
-    const std::vector<hpx::shared_future<double *>> &ft_gradparam,
-    const std::vector<hpx::shared_future<double *>> &ft_alpha,
-    gprat_hyper::SEKParams sek_params,
-    gprat_hyper::AdamParams adam_params,
-    const std::size_t n_tile_size,
-    const std::size_t n_tiles,
-    std::vector<hpx::shared_future<double>> &m_T,
-    std::vector<hpx::shared_future<double>> &v_T,
-    const std::vector<hpx::shared_future<double>> &beta1_T,
-    const std::vector<hpx::shared_future<double>> &beta2_T,
-    int iter,
-    gprat::SYCL_DEVICE &sycl_device
+    // const std::vector<hpx::shared_future<double *>> &ft_invK,
+    // const std::vector<hpx::shared_future<double *>> &ft_gradparam,
+    // const std::vector<hpx::shared_future<double *>> &ft_alpha,
+    // gprat_hyper::SEKParams sek_params,
+    // gprat_hyper::AdamParams adam_params,
+    // const std::size_t n_tile_size,
+    // const std::size_t n_tiles,
+    // std::vector<hpx::shared_future<double>> &m_T,
+    // std::vector<hpx::shared_future<double>> &v_T,
+    // const std::vector<hpx::shared_future<double>> &beta1_T,
+    // const std::vector<hpx::shared_future<double>> &beta2_T,
+    // int iter,
+    // gprat::SYCL_DEVICE &sycl_device
 );
 
 /**
@@ -310,18 +310,18 @@ double update_vertical_lengthscale(
   @return The updated hyperparameter
  */
 double update_noise_variance(
-    const std::vector<hpx::shared_future<double *>> &ft_invK,
-    const std::vector<hpx::shared_future<double *>> &ft_alpha,
-    gprat_hyper::SEKParams sek_params,
-    gprat_hyper::AdamParams adam_params,
-    const std::size_t n_tile_size,
-    const std::size_t n_tiles,
-    std::vector<hpx::shared_future<double>> &m_T,
-    std::vector<hpx::shared_future<double>> &v_T,
-    const std::vector<hpx::shared_future<double>> &beta1_T,
-    const std::vector<hpx::shared_future<double>> &beta2_T,
-    int iter,
-    gprat::SYCL_DEVICE &sycl_device
+    // const std::vector<hpx::shared_future<double *>> &ft_invK,
+    // const std::vector<hpx::shared_future<double *>> &ft_alpha,
+    // gprat_hyper::SEKParams sek_params,
+    // gprat_hyper::AdamParams adam_params,
+    // const std::size_t n_tile_size,
+    // const std::size_t n_tiles,
+    // std::vector<hpx::shared_future<double>> &m_T,
+    // std::vector<hpx::shared_future<double>> &v_T,
+    // const std::vector<hpx::shared_future<double>> &beta1_T,
+    // const std::vector<hpx::shared_future<double>> &beta2_T,
+    // int iter,
+    // gprat::SYCL_DEVICE &sycl_device
 );
 
 }  // end of namespace sycl_backend
