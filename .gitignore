@@ -202,3 +202,6 @@ compile_commands.json
 
 # Build files
 build*
+
+# Ignore folder
+ignore

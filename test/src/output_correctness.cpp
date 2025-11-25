@@ -1,21 +1,33 @@
+// Includes ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// GPRat
 #include "gprat_c.hpp"
 #include "utils_c.hpp"
+
+// Catch2
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+using Catch::Matchers::WithinRel;
 
-// This is a standalone test, so including this directly is fine.
-// Better than having the whole project depend on compiled Boost.Json!
+// Boost
 #include <boost/json/src.hpp>
 
-// std headers last
+// Standard library
 #include <fstream>
 #include <string>
 #include <string_view>
 
-// Struct containing all results we'd like to compare
-struct gprat_results
+namespace gprat::test
 {
-    std::vector<std::vector<double>> choleksy;
+
+// GPRat results structure ////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @brief   Struct containing all results we'd like to compare
+ */
+struct GpratResults
+{
+    std::vector<std::vector<double>> cholesky;
     std::vector<double> losses;
     std::vector<std::vector<double>> sum;
     std::vector<std::vector<double>> full;
@@ -25,33 +37,65 @@ struct gprat_results
     std::vector<double> pred_no_optimize;
 };
 
-// The following two functions are for JSON (de-)serialization
-void tag_invoke(boost::json::value_from_tag, boost::json::value &jv, const gprat_results &results)
+// JSON (de-)serialization ////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @brief Creates a data for a JSON object from an existing results structure.
+ * 
+ * @param jv the values held by the JSON file
+ * @param results the GpratResults object that from which the values are read
+ */
+void tag_invoke(
+    boost::json::value_from_tag, 
+    boost::json::value &jv, 
+    const GpratResults &results
+)
 {
     jv = {
-        { "choleksy", boost::json::value_from(results.choleksy) },
+        { "cholesky", boost::json::value_from(results.cholesky) },
         { "losses", boost::json::value_from(results.losses) },
         { "sum", boost::json::value_from(results.sum) },
         { "full", boost::json::value_from(results.full) },
         { "pred", boost::json::value_from(results.pred) },
         { "sum_no_optimize", boost::json::value_from(results.sum_no_optimize) },
         { "full_no_optimize", boost::json::value_from(results.full_no_optimize) },
-        { "pred_no_optimize", boost::json::value_from(results.pred_no_optimize) },
+        { "pred_no_optimize", boost::json::value_from(results.pred_no_optimize) }
     };
 }
 
-// This helper function deduces the type and assigns the value with the matching key
-template <typename T>
-inline void extract(const boost::json::object &obj, T &t, std::string_view key)
+/**
+ * @brief Searches a specified JSON object for the property `key`, converts its type to `T`, and stores its value in `t`.
+ * 
+ * @tparam T the target type of the read value
+ * 
+ * @param obj the JSON object that is read from
+ * @param t the variable to store the value in
+ * @param key the key to search for in the JSON file
+ */
+template <typename T> inline 
+void extract(
+    const boost::json::object &obj, 
+    T &t, 
+    std::string_view key
+)
 {
     t = boost::json::value_to<T>(obj.at(key));
 }
 
-gprat_results tag_invoke(boost::json::value_to_tag<gprat_results>, const boost::json::value &jv)
+/**
+ * @brief Returns a results structure with the contents of a loaded JSON file.
+ * 
+ * @param jv the contents of the loaded JSON file
+ * @return a GpratResults structure filled with the loaded values
+ */
+GpratResults tag_invoke(
+    boost::json::value_to_tag<GpratResults>, 
+    const boost::json::value &jv
+)
 {
-    gprat_results results;
+    GpratResults results;
     const auto &obj = jv.as_object();
-    extract(obj, results.choleksy, "choleksy");
+    extract(obj, results.cholesky, "cholesky");
     extract(obj, results.losses, "losses");
     extract(obj, results.sum, "sum");
     extract(obj, results.full, "full");
@@ -62,16 +106,87 @@ gprat_results tag_invoke(boost::json::value_to_tag<gprat_results>, const boost::
     return results;
 }
 
-// This logic is basically equivalent to the GPRat C++ example (for now).
-gprat_results run_on_data_cpu(const std::string &train_path, const std::string &out_path, const std::string &test_path)
+/**
+ * @brief Tries to read the contents of the specified filename to set them as the basis of the test for correctness.
+ *        If that is not possible, a file with the specified name is created and filled with fallback results. 
+ * 
+ * @param filename the filename to read from in case of success or write to in case of failure
+ * @param fallback_results the fallback results to fill the file with in case of failure
+ * @param results the results object to fill up with the content of the file in case of success
+ * @return `true` if reading the specified file is successful, and `false` if it failed and has been created 
+ */
+bool load_or_create_expected_results(
+    const std::string &filename, 
+    const GpratResults &fallback_results, 
+    GpratResults &results
+)
 {
-    // configuration
-    const std::size_t OPT_ITER = 3;
-    const std::size_t n_test = 128;
-    const std::size_t n_train = 128;
-    const std::size_t n_tiles = 16;
-    const std::size_t n_reg = 8;
+    // First try to read our expected results file
+    {
+        std::ifstream ifs(filename);
+        if (!ifs.fail())
+        {
+            using iterator_type = std::istreambuf_iterator<char>;
+            const std::string content(iterator_type{ ifs }, iterator_type{});
+            std::cout << "\033[34mTrying to parse content\033[0m" << std::endl;
+            results = boost::json::value_to<GpratResults>(boost::json::parse(content));
+            std::cout << "\033[34mSuccessfully read expected results file\033[0m" << std::endl;
+            return true;
+        }
+    }
 
+    // If that does not work, just write out the results we want
+    std::ofstream fout(filename);
+    fout << boost::json::value_from(fallback_results);
+    return false;
+}
+
+/**
+ * @brief Tries to load the environment variable `GPRAT_ROOT` as the directory pointing toward the test data, and sets 
+ *        `../data` if this is not possible.
+ * 
+ * @return a string containing the location of the test data, potentially relative to the working directory
+ */
+std::string get_data_directory()
+{
+    const char *env_root = std::getenv("GPRAT_ROOT");
+    if (env_root)   { return env_root; }
+    else            { return "../data"; }
+}
+
+// Test execution /////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// CPU and global test settings
+constexpr std::size_t OPT_ITER = 3;
+constexpr std::size_t n_test = 128;
+constexpr std::size_t n_train = 128;
+constexpr std::size_t n_tiles = 16;
+constexpr std::size_t n_reg = 8;
+
+// CUDA test settings
+constexpr int gpu_id = 0;
+constexpr int n_streams = 1;
+
+// SYCL test settings
+constexpr int device_id = 0;
+constexpr int n_queues = 1;
+
+/**
+ * @brief Generates results for a test configuration using the CPU for computations.
+ * 
+ * This logic is basically equivalent to the GPRat C++ example.
+ * 
+ * @param train_path path to the text file containing the training data
+ * @param out_path path to the text file containing the output data of the test
+ * @param test_path path to the text file containing the input data for the test
+ * @return a GpratResults object holding the results generated during the test
+ */
+GpratResults run_on_data_cpu(
+    const std::string &train_path, 
+    const std::string &out_path, 
+    const std::string &test_path
+)
+{
     // Compute tile sizes and number of predict tiles
     const int tile_size = utils::compute_train_tile_size(n_train, n_tiles);
     const auto test_tiles = utils::compute_test_tiles(n_test, n_tiles, tile_size);
@@ -87,21 +202,24 @@ gprat_results run_on_data_cpu(const std::string &train_path, const std::string &
     // GP
     const std::vector<bool> trainable = { true, true, true };
     gprat::GP gp_cpu(
-        training_input.data, training_output.data, n_tiles, tile_size, n_reg, { 1.0, 1.0, 0.1 }, trainable);
+        training_input.data, 
+        training_output.data, 
+        n_tiles, 
+        tile_size, 
+        n_reg, 
+        { 1.0, 1.0, 0.1 }, 
+        trainable
+    );
 
     // Initialize HPX with no arguments, don't run hpx_main
     utils::start_hpx_runtime(0, nullptr);
 
-    gprat_results results_cpu;
+    GpratResults results_cpu;
 
-    results_cpu.choleksy = gp_cpu.cholesky();
-
+    results_cpu.cholesky = gp_cpu.cholesky();
     results_cpu.losses = gp_cpu.optimize(hpar);
-
     results_cpu.sum = gp_cpu.predict_with_uncertainty(test_input.data, test_tiles.first, test_tiles.second);
-
     results_cpu.full = gp_cpu.predict_with_full_cov(test_input.data, test_tiles.first, test_tiles.second);
-
     results_cpu.pred = gp_cpu.predict(test_input.data, test_tiles.first, test_tiles.second);
 
     // Stop the HPX runtime
@@ -110,16 +228,20 @@ gprat_results run_on_data_cpu(const std::string &train_path, const std::string &
     return results_cpu;
 }
 
-// Add this helper function
-gprat_results run_on_data_gpu(const std::string &train_path, const std::string &out_path, const std::string &test_path)
+/**
+ * @brief Generates results for a test configuration using a CUDA GPU for computations.
+ * 
+ * @param train_path path to the text file containing the training data
+ * @param out_path path to the text file containing the output data of the test
+ * @param test_path path to the text file containing the input data for the test
+ * @return a GpratResults object holding the results generated during the test
+ */
+GpratResults run_on_data_gpu(
+    const std::string &train_path, 
+    const std::string &out_path, 
+    const std::string &test_path
+)
 {
-    const std::size_t n_test = 128;
-    const std::size_t n_train = 128;
-    const std::size_t n_tiles = 16;
-    const std::size_t n_reg = 8;
-    const int gpu_id = 0;
-    const int n_streams = 1;
-
     const int tile_size = utils::compute_train_tile_size(n_train, n_tiles);
     const auto test_tiles = utils::compute_test_tiles(n_test, n_tiles, tile_size);
 
@@ -128,6 +250,7 @@ gprat_results run_on_data_gpu(const std::string &train_path, const std::string &
     gprat::GP_data test_input(test_path, n_test, n_reg);
 
     const std::vector<bool> trainable = { true, true, true };
+
     gprat::GP gp_gpu(
         training_input.data,
         training_output.data,
@@ -141,9 +264,10 @@ gprat_results run_on_data_gpu(const std::string &train_path, const std::string &
 
     utils::start_hpx_runtime(0, nullptr);
 
-    gprat_results results_gpu;
-    results_gpu.choleksy = gp_gpu.cholesky();
-    // NOTE: optimize and optimize_step are currently not implemented for GPU
+    GpratResults results_gpu;
+
+    results_gpu.cholesky = gp_gpu.cholesky();
+    // NOTE: optimize and optimize_step are not implemented for GPU
     results_gpu.sum_no_optimize = gp_gpu.predict_with_uncertainty(test_input.data, test_tiles.first, test_tiles.second);
     results_gpu.full_no_optimize = gp_gpu.predict_with_full_cov(test_input.data, test_tiles.first, test_tiles.second);
     results_gpu.pred_no_optimize = gp_gpu.predict(test_input.data, test_tiles.first, test_tiles.second);
@@ -153,45 +277,81 @@ gprat_results run_on_data_gpu(const std::string &train_path, const std::string &
     return results_gpu;
 }
 
-bool load_or_create_expected_results(
-    const std::string &filename, const gprat_results &fallback_results, gprat_results &results)
+/**
+ * @brief Generates results for a test configuration using a SYCL device for computations.
+ * 
+ * @param train_path path to the text file containing the training data
+ * @param out_path path to the text file containing the output data of the test
+ * @param test_path path to the text file containing the input data for the test
+ * @return a GpratResults object holding the results generated during the test
+ */
+GpratResults run_on_data_sycl(
+    const std::string &train_path, 
+    const std::string &out_path, 
+    const std::string &test_path
+)
 {
-    // First try to read our expected results file
-    {
-        std::ifstream ifs(filename);
-        if (!ifs.fail())
-        {
-            using iterator_type = std::istreambuf_iterator<char>;
-            const std::string content(iterator_type{ ifs }, iterator_type{});
-            results = boost::json::value_to<gprat_results>(boost::json::parse(content));
-            return true;
-        }
-    }
+    const int tile_size = utils::compute_train_tile_size(n_train, n_tiles);
+    const auto test_tiles = utils::compute_test_tiles(n_test, n_tiles, tile_size);
 
-    // If that doesn't work, just write out the results we want
-    std::ofstream fout(filename);
-    fout << boost::json::value_from(fallback_results);
-    return false;
+    gprat::GP_data training_input(train_path, n_train, n_reg);
+    gprat::GP_data training_output(out_path, n_train, n_reg);
+    gprat::GP_data test_input(test_path, n_test, n_reg);
+
+    const std::vector<bool> trainable = { true, true, true };
+
+    std::cout << "Setting up Gaussian Process with SYCL" << std::endl;
+
+    gprat::GP gp_sycl(
+        training_input.data,
+        training_output.data,
+        n_tiles,
+        tile_size,
+        n_reg,
+        { 1.0, 1.0, 0.1 },
+        trainable,
+        gprat::DeviceParameters{device_id, n_queues}
+    ); // FIXME
+
+    utils::start_hpx_runtime(0, nullptr);
+
+    GpratResults results_sycl;
+
+    // results_sycl.cholesky = gp_sycl.cholesky();
+    // // NOTE: optimize and optimize_step are currently not implemented for GPU
+
+    // std::cout << "Running predict with uncertainty" << std::endl;
+    // results_sycl.sum_no_optimize = 
+    //     gp_sycl.predict_with_uncertainty(test_input.data, test_tiles.first, test_tiles.second);
+
+    // std::cout << "Running predict with full covariance" << std::endl;
+    // results_sycl.full_no_optimize = gp_sycl.predict_with_full_cov(test_input.data, test_tiles.first, test_tiles.second);
+
+    std::cout << "Running predict" << std::endl;
+    results_sycl.pred_no_optimize = gp_sycl.predict(test_input.data, test_tiles.first, test_tiles.second);
+
+    utils::stop_hpx_runtime();
+
+    return results_sycl;
 }
 
-std::string get_root_directory()
-{
-    const char *env_root = std::getenv("GPRAT_ROOT");
-    if (env_root)
-    {
-        return env_root;
-    }
-    return "../data";
-}
+// Test cases /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+/*
+ * CPU test case
+ */
 TEST_CASE("GP CPU results match known-good values", "[integration][cpu]")
 {
-    const std::string root = get_root_directory();
-    const auto results = run_on_data_cpu(root + "/data_1024/training_input.txt",
-                                         root + "/data_1024/training_output.txt",
-                                         root + "/data_1024/test_input.txt");
+    const std::string root = get_data_directory();
 
-    gprat_results expected_results;
+    const auto results = run_on_data_cpu(
+        root + "/data_1024/training_input.txt",
+        root + "/data_1024/training_output.txt",
+        root + "/data_1024/test_input.txt"
+    );
+
+    GpratResults expected_results;
+
     if (!load_or_create_expected_results(root + "/data_1024/output.json", results, expected_results))
     {
         std::cerr << "No previous results to compare to. The current results have been saved instead!" << std::endl;
@@ -199,7 +359,7 @@ TEST_CASE("GP CPU results match known-good values", "[integration][cpu]")
     }
 
     // First we check for equal size
-    REQUIRE(results.choleksy.size() == expected_results.choleksy.size());
+    REQUIRE(results.cholesky.size() == expected_results.cholesky.size());
     REQUIRE(results.losses.size() == expected_results.losses.size());
     REQUIRE(results.sum.size() == expected_results.sum.size());
     REQUIRE(results.sum[0].size() == expected_results.sum[0].size());
@@ -211,22 +371,27 @@ TEST_CASE("GP CPU results match known-good values", "[integration][cpu]")
     // The default-constructed WithinRel() matcher has a tolerance of epsilon * 100
     // see:
     // https://github.com/catchorg/Catch2/blob/914aeecfe23b1e16af6ea675a4fb5dbd5a5b8d0a/docs/comparing-floating-point-numbers.md#withinrel
-    using Catch::Matchers::WithinRel;
+
     double eps = std::numeric_limits<double>::epsilon() * 1'000'000;
-    for (std::size_t i = 0, n = results.choleksy.size(); i != n; ++i)
+
+    // Require that the results of the Cholesky decomposition have a relative error below the specified `eps`
+    for (std::size_t i = 0, n = results.cholesky.size(); i != n; ++i)
     {
-        for (std::size_t j = 0, m = results.choleksy[i].size(); j != m; ++j)
+        for (std::size_t j = 0, m = results.cholesky[i].size(); j != m; ++j)
         {
-            INFO("CPU choleksy " << i << " " << j);
-            REQUIRE_THAT(results.choleksy[i][j], WithinRel(expected_results.choleksy[i][j], eps));
+            INFO("CPU cholesky " << i << " " << j);
+            REQUIRE_THAT(results.cholesky[i][j], WithinRel(expected_results.cholesky[i][j], eps));
         }
     }
+
+    // Require that the losses after accessing `optimize` have a relative error below the specified `eps`
     for (std::size_t i = 0, n = results.losses.size(); i != n; ++i)
     {
         INFO("CPU losses " << i);
         REQUIRE_THAT(results.losses[i], WithinRel(expected_results.losses[i], eps));
     }
 
+    // Require that the sums after predicting with uncertainty have a relative error below the specified `eps`
     for (std::size_t i = 0, n = results.sum.size(); i != n; ++i)
     {
         for (std::size_t j = 0, m = results.sum[i].size(); j != m; ++j)
@@ -236,6 +401,8 @@ TEST_CASE("GP CPU results match known-good values", "[integration][cpu]")
         }
     }
 
+    // Require that the results when predicting with the full covariance matrix have a relative error below the 
+    // specified `eps`
     for (std::size_t i = 0, n = results.full.size(); i != n; ++i)
     {
         for (std::size_t j = 0, m = results.full[i].size(); j != m; ++j)
@@ -245,6 +412,7 @@ TEST_CASE("GP CPU results match known-good values", "[integration][cpu]")
         }
     }
 
+    // Require that the results retrieved form a mere prediction have a relative error below the specified `eps`
     for (std::size_t i = 0, n = results.pred.size(); i != n; ++i)
     {
         INFO("CPU pred " << i);
@@ -252,8 +420,10 @@ TEST_CASE("GP CPU results match known-good values", "[integration][cpu]")
     }
 }
 
-// Test for GPU
-// NOTE: using higher tolerance than for CPU
+/*
+ * CUDA GPU test case
+ * NOTE: using higher tolerance than for CPU
+ */
 TEST_CASE("GP GPU results match known-good values (no loss)", "[integration][gpu]")
 {
     if (!utils::compiled_with_cuda())
@@ -262,14 +432,16 @@ TEST_CASE("GP GPU results match known-good values (no loss)", "[integration][gpu
         return;
     }
 
-    const std::string root = get_root_directory();
+    std::cout << "STARTING CUDA TEST" << std::endl;
+
+    const std::string root = get_data_directory();
     const std::string train = root + "/data_1024/training_input.txt";
     const std::string out = root + "/data_1024/training_output.txt";
     const std::string test = root + "/data_1024/test_input.txt";
 
-    const gprat_results results = run_on_data_gpu(train, out, test);
+    const GpratResults results = run_on_data_gpu(train, out, test);
 
-    gprat_results expected_results;
+    GpratResults expected_results;
     const std::string ref_file = root + "/data_1024/output.json";
 
     if (!load_or_create_expected_results(ref_file, results, expected_results))
@@ -278,7 +450,7 @@ TEST_CASE("GP GPU results match known-good values (no loss)", "[integration][gpu
         return;
     }
 
-    REQUIRE(results.choleksy.size() == expected_results.choleksy.size());
+    REQUIRE(results.cholesky.size() == expected_results.cholesky.size());
     REQUIRE(results.sum_no_optimize.size() == expected_results.sum_no_optimize.size());
     REQUIRE(results.sum_no_optimize[0].size() == expected_results.sum_no_optimize[0].size());
     REQUIRE(results.full_no_optimize.size() == expected_results.full_no_optimize.size());
@@ -288,12 +460,12 @@ TEST_CASE("GP GPU results match known-good values (no loss)", "[integration][gpu
     using Catch::Matchers::WithinRel;
     double eps = std::numeric_limits<double>::epsilon() * 1'000'000;
 
-    for (std::size_t i = 0, n = results.choleksy.size(); i != n; ++i)
+    for (std::size_t i = 0, n = results.cholesky.size(); i != n; ++i)
     {
-        for (std::size_t j = 0, m = results.choleksy[i].size(); j != m; ++j)
+        for (std::size_t j = 0, m = results.cholesky[i].size(); j != m; ++j)
         {
-            INFO("GPU choleksy " << i << " " << j);
-            REQUIRE_THAT(results.choleksy[i][j], WithinRel(expected_results.choleksy[i][j], eps));
+            INFO("GPU cholesky " << i << " " << j);
+            REQUIRE_THAT(results.cholesky[i][j], WithinRel(expected_results.cholesky[i][j], eps));
         }
     }
 
@@ -303,8 +475,8 @@ TEST_CASE("GP GPU results match known-good values (no loss)", "[integration][gpu
         {
 
             // FIXME
-            printf("results.sum_no_optimize[i][j] = %f\n", results.sum_no_optimize[i][j]);
-            printf("expected_results.sum_no_optimize[i][j] = %f\n", expected_results.sum_no_optimize[i][j]);
+            // printf("results.sum_no_optimize[i][j] = %f\n", results.sum_no_optimize[i][j]);
+            // printf("expected_results.sum_no_optimize[i][j] = %f\n", expected_results.sum_no_optimize[i][j]);
             INFO("GPU sum_no_optimize " << i << " " << j);
             REQUIRE_THAT(results.sum_no_optimize[i][j], WithinRel(expected_results.sum_no_optimize[i][j], eps));
         }
@@ -325,3 +497,84 @@ TEST_CASE("GP GPU results match known-good values (no loss)", "[integration][gpu
         REQUIRE_THAT(results.pred_no_optimize[i], WithinRel(expected_results.pred_no_optimize[i], eps));
     }
 }
+
+/*
+ * Test for SYCL
+ * NOTE: using higher tolerance than for CPU
+ */
+TEST_CASE("GP SYCL results match known-good values (no loss)", "[integration][sycl]")
+{
+    if (!utils::compiled_with_sycl())
+    {
+        WARN("SYCL not available — skipping SYCL test.");
+        return;
+    }
+
+    const std::string root = get_data_directory();
+    std::cout << "\033[33mGot root directory. Identified it as :::" << root << " :::\033[0m" << std::endl;
+    system("pwd");
+
+    const std::string train = root + "/data_1024/training_input.txt";
+    const std::string out = root + "/data_1024/training_output.txt";
+    const std::string test = root + "/data_1024/test_input.txt";
+
+    const GpratResults results = run_on_data_sycl(train, out, test);
+
+    GpratResults expected_results;
+    const std::string ref_file = root + "/data_1024/output.json";
+
+    if (!load_or_create_expected_results(ref_file, results, expected_results))
+    {
+        std::cerr << "No previous results to compare to. The current results have been saved instead!" << std::endl;
+        return;
+    }
+
+    REQUIRE(results.cholesky.size() == expected_results.cholesky.size());
+    REQUIRE(results.sum_no_optimize.size() == expected_results.sum_no_optimize.size());
+    REQUIRE(results.sum_no_optimize[0].size() == expected_results.sum_no_optimize[0].size());
+    REQUIRE(results.full_no_optimize.size() == expected_results.full_no_optimize.size());
+    REQUIRE(results.full_no_optimize[0].size() == expected_results.full_no_optimize[0].size());
+    REQUIRE(results.pred_no_optimize.size() == expected_results.pred_no_optimize.size());
+
+    using Catch::Matchers::WithinRel;
+    double eps = std::numeric_limits<double>::epsilon() * 1'000'000;
+
+    for (std::size_t i = 0, n = results.cholesky.size(); i != n; ++i)
+    {
+        for (std::size_t j = 0, m = results.cholesky[i].size(); j != m; ++j)
+        {
+            INFO("SYCL cholesky " << i << " " << j);
+            REQUIRE_THAT(results.cholesky[i][j], WithinRel(expected_results.cholesky[i][j], eps));
+        }
+    }
+
+    for (std::size_t i = 0, n = results.sum_no_optimize.size(); i != n; ++i)
+    {
+        for (std::size_t j = 0, m = results.sum_no_optimize[i].size(); j != m; ++j)
+        {
+
+            // FIXME
+            printf("results.sum_no_optimize[i][j] = %f\n", results.sum_no_optimize[i][j]);
+            printf("expected_results.sum_no_optimize[i][j] = %f\n", expected_results.sum_no_optimize[i][j]);
+            INFO("SYCL sum_no_optimize " << i << " " << j);
+            REQUIRE_THAT(results.sum_no_optimize[i][j], WithinRel(expected_results.sum_no_optimize[i][j], eps));
+        }
+    }
+
+    for (std::size_t i = 0, n = results.full_no_optimize.size(); i != n; ++i)
+    {
+        for (std::size_t j = 0, m = results.full_no_optimize[i].size(); j != m; ++j)
+        {
+            INFO("SYCL full " << i << " " << j);
+            REQUIRE_THAT(results.full_no_optimize[i][j], WithinRel(expected_results.full_no_optimize[i][j], eps));
+        }
+    }
+
+    for (std::size_t i = 0, n = results.pred_no_optimize.size(); i != n; ++i)
+    {
+        INFO("SYCL pred_no_optimize " << i);
+        REQUIRE_THAT(results.pred_no_optimize[i], WithinRel(expected_results.pred_no_optimize[i], eps));
+    }
+}
+
+} // ! namespace gprat::test

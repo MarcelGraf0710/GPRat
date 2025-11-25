@@ -17,11 +17,19 @@ void right_looking_cholesky_tiled(
     gprat::SYCL_DEVICE &sycl_device
 )
 {
+    std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : Entering \n";
+
     sycl::queue queue;
+
+    std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : Entering loop ALPHA \n";
 
     for (std::size_t k = 0; k < n_tiles; ++k)
     {
+        std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : LOOP ALPHA : ITERATION " << k << " \n";
+
         queue = sycl_device.next_queue();
+
+        std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : POTRF \n";
 
         // POTRF
         ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)] = hpx::dataflow(
@@ -35,9 +43,14 @@ void right_looking_cholesky_tiled(
         // an error otherwise.
         ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)].get();
 
+        std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : Entering loop BETA \n";
+
         for (std::size_t m = k + 1; m < n_tiles; ++m)
         {
+            std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : LOOP BETA : ITERATION " << m << " \n";
             queue = sycl_device.next_queue();
+
+            std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : TRSM \n";
 
             // TRSM
             ft_tiles[m * n_tiles + k] = hpx::dataflow(
@@ -52,17 +65,27 @@ void right_looking_cholesky_tiled(
             );
         }
 
+        std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : Entering loop GAMMA \n";
+
         for (std::size_t m = k + 1; m < n_tiles; ++m)
         {
+            std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : LOOP GAMMA : ITERATION " << m << " \n";
             queue = sycl_device.next_queue();
+
+            std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : SYRK \n";
 
             // SYRK
             ft_tiles[m * n_tiles + m] =
                 hpx::dataflow([&]() {return syrk(queue, ft_tiles[m * n_tiles + k], ft_tiles[m * n_tiles + m], n_tile_size);});
 
+            std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : Entering loop DELTA \n";
+
             for (std::size_t n = k + 1; n < m; ++n)
             {
+                std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : LOOP DELTA : ITERATION " << n << " \n";
                 queue = sycl_device.next_queue();
+
+                std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : GEMM \n";
 
                 // GEMM
                 ft_tiles[m * n_tiles + n] = hpx::dataflow(
@@ -79,6 +102,8 @@ void right_looking_cholesky_tiled(
             }
         }
     }
+
+    std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : Leaving \n";
 }
 
 // Tiled Triangular Solve Algorithms

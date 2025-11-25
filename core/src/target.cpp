@@ -179,7 +179,28 @@ void SYCL_DEVICE::create()
         queues = std::vector<sycl::queue>(n_queues);
 
         for (size_t i = 0; i < n_queues; ++i) {
-            queues[i] = sycl::queue(sycl::gpu_selector_v);
+            queues[i] = sycl::queue(sycl::gpu_selector_v); // sycl::gpu_selector_v
+
+            // // DEBUG
+            // std::cout << "Running on " << queues[i].get_device().get_info<sycl::info::device::name>() << "\n";
+            // double* test = sycl::malloc_device<double>(1, queues[i]);
+
+            // auto ctx = queues[i].get_context();
+            // auto pinfo = sycl::get_pointer_type(test, ctx);
+
+            // if (pinfo == sycl::usm::alloc::device) {
+            //     std::cout << "This is a device pointer.\n";
+            // } else if (pinfo == sycl::usm::alloc::shared) {
+            //     std::cout << "This is a shared pointer.\n";
+            // } else if (pinfo == sycl::usm::alloc::host) {
+            //     std::cout << "This is a host pointer.\n";
+            // } else {
+            //     std::cout << "Unknown pointer type.\n";
+            // }
+
+
+            // std::cout << "[QUEUE INITIALIZATION] Pointer type = " << (int)pinfo << "\n";
+            // ! DEBUH
         }
     } 
     catch (const sycl::exception& e) 
@@ -315,7 +336,7 @@ int gpu_count()
     int deviceCount;
     cudaGetDeviceCount(&deviceCount);
     return deviceCount;
-#elif GPRAT_WITH_CUDA
+#elif GPRAT_WITH_SYCL
     try {
         std::vector<sycl::device> all_gpus;
         std::vector<sycl::platform> platforms = sycl::platform::get_platforms();
@@ -329,14 +350,13 @@ int gpu_count()
                 }
             }
         }
+        int device_count = all_gpus.size();
+        return device_count;
     }
     catch (const sycl::exception& e) 
     {
         std::cout << "SYCL exception: " << e.what() << "\n";
     }
-
-    int device_count = all_gpus.size();
-    return device_count;
 #else
     std::cout << "CUDA is not available - There are no GPUs available. You can only "
                  "use `get_cpu()` to utilize the CPU for computation."

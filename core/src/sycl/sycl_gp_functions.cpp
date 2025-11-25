@@ -30,9 +30,37 @@ predict(
 {
     sycl_device.create();
 
-    double *d_training_input = copy_to_device(h_training_input, sycl_device);
+    std::cout << "[sycl_gp_functions.cpp] [predict] : Creating device pointers \n";
+
+    double *d_training_input = copy_to_device(h_training_input, sycl_device, 1);
     double *d_training_output = copy_to_device(h_training_output, sycl_device);
     double *d_test_input = copy_to_device(h_test_input, sycl_device);
+
+    std::cout << "[sycl_gp_functions.cpp] [predict] : DONE creating device pointers \n";
+
+    // // DEBUG
+
+    // sycl::queue debug_queue = sycl_device.next_queue();
+
+    // std::cout << "\033[33m:::::::: TEST WITHIN SYCL_GP_FUNCTIONS::PREDICT ::::::::\n";
+    // std::cout << "Expected length: " << h_training_input.size() << "\n";
+
+    // std::vector<real_t> test(h_training_input.size());
+    // auto copy_process = debug_queue.memcpy(test.data(), d_training_input, h_training_input.size() * sizeof(real_t));
+    // std::cout << "Actual length: " << test.size() << "\n";
+    // std::cout << "Contents: \n [";
+
+    // for (int i = 0; i < test.size(); ++i)
+    // {
+    //     std::cout << test[i] << " ";
+    // }
+    // std::cout << "]\033[0m\n\n" << std::endl;
+
+    // // END OF DEBUG
+
+    // std::cout << "[gprat::sycl_backend::predict] d_training_input (AKA d_input) = " << d_training_input << std::endl;
+
+    std::cout << "[sycl_gp_functions.cpp] [predict] : Accessing assemble_tiled_covariance_matrix \n";
 
     auto d_tiles = assemble_tiled_covariance_matrix(
         d_training_input, 
@@ -43,7 +71,11 @@ predict(
         sycl_device
     );
 
+    std::cout << "[sycl_gp_functions.cpp] [predict] : Accessing assemble_alpha_tiles \n";
+
     auto alpha_tiles = assemble_alpha_tiles(d_training_output, static_cast<std::size_t>(n_tiles), static_cast<std::size_t>(n_tile_size), sycl_device);
+
+    std::cout << "[sycl_gp_functions.cpp] [predict] : Accessing assemble_cross_covariance_tiles \n";
 
     auto cross_covariance_tiles = assemble_cross_covariance_tiles(
         d_test_input, 
@@ -57,14 +89,25 @@ predict(
         sycl_device
     );
 
+    std::cout << "[sycl_gp_functions.cpp] [predict] : Accessing assemble_tiles_with_zeros \n";
+
     auto prediction_tiles = assemble_tiles_with_zeros(static_cast<std::size_t>(m_tile_size), static_cast<std::size_t>(m_tiles), sycl_device);
 
+    std::cout << "[sycl_gp_functions.cpp] [predict] : Accessing right_looking_cholesky_tiled \n";
 
     right_looking_cholesky_tiled(d_tiles, static_cast<std::size_t>(n_tile_size), static_cast<std::size_t>(n_tiles), sycl_device);
 
     // Triangular solve K_NxN * alpha = y
+
+    std::cout << "[sycl_gp_functions.cpp] [predict] : Accessing forward_solve_tiled \n";
+
     forward_solve_tiled(d_tiles, alpha_tiles, static_cast<std::size_t>(n_tile_size), static_cast<std::size_t>(n_tiles), sycl_device);
+
+    std::cout << "[sycl_gp_functions.cpp] [predict] : Accessing backward_solve_tiled \n";
+
     backward_solve_tiled(d_tiles, alpha_tiles, static_cast<std::size_t>(n_tile_size), static_cast<std::size_t>(n_tiles), sycl_device);
+
+    std::cout << "[sycl_gp_functions.cpp] [predict] : Accessing matrix_vector_tiled \n";
 
     matrix_vector_tiled(
         cross_covariance_tiles, 
@@ -77,6 +120,8 @@ predict(
         sycl_device
     );
 
+    std::cout << "[sycl_gp_functions.cpp] [predict] : Accessing copy_tiled_vector_to_host_vector \n";
+
     std::vector<double> prediction = copy_tiled_vector_to_host_vector(
         prediction_tiles, 
         static_cast<std::size_t>(m_tile_size), 
@@ -84,16 +129,23 @@ predict(
         sycl_device
     );
 
+    std::cout << "[sycl_gp_functions.cpp] [predict] : Accessing gprat::sycl_backend::free_lower_tiled_matrix \n";
+
     gprat::sycl_backend::free_lower_tiled_matrix(d_tiles, static_cast<std::size_t>(n_tiles), sycl_device);
 
     sycl::queue queue = sycl_device.next_queue();
+
+    std::cout << "[sycl_gp_functions.cpp] [predict] : Freeing the entire world \n";
 
     gprat::sycl_backend::free(alpha_tiles, queue);
     gprat::sycl_backend::free(cross_covariance_tiles, queue);
     gprat::sycl_backend::free(prediction_tiles, queue);
     
+    std::cout << "[sycl_gp_functions.cpp] [predict] : Destroying SYCL device with dynamite \n";
 
     sycl_device.destroy();
+
+    std::cout << "[sycl_gp_functions.cpp] [predict] : All done, returning \n";
 
     return prediction;
 }

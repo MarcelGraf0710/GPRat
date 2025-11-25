@@ -5,6 +5,10 @@
 hpx::shared_future<double *>
 potrf(sycl::queue &queue, hpx::shared_future<double *> f_A, const std::size_t N)
 {
+    std::cout << "[adapter_onemath.cpp] [potrf] : Entering \n";
+
+    std::cout << "[adapter_onemath.cpp] [potrf] : Calculating scratchpad size \n";
+
     std::int64_t scratchpad_size = oneapi::math::lapack::potrf_scratchpad_size<double>(
         queue, 
         oneapi::math::uplo::upper, 
@@ -12,9 +16,24 @@ potrf(sycl::queue &queue, hpx::shared_future<double *> f_A, const std::size_t N)
         static_cast<std::int64_t>(N)
     );
 
-    gprat::sycl_backend::real_t *scratchpad = sycl::malloc_shared<gprat::sycl_backend::real_t>(static_cast<std::size_t>(scratchpad_size), queue);
+    std::cout << "[adapter_onemath.cpp] [potrf] : Assigning scratchpad \n";
 
-    gprat::sycl_backend::real_t *d_A = f_A.get();
+    gprat::sycl_backend::real_t *scratchpad = sycl::malloc_device<gprat::sycl_backend::real_t>(static_cast<std::size_t>(scratchpad_size), queue);
+
+    std::cout << "[adapter_onemath.cpp] [potrf] : HPX moment \n";
+
+    gprat::sycl_backend::real_t *d_A;
+
+    try {
+        d_A = f_A.get();
+        std::cout << "[potrf] got d_A = " << d_A << "\n";
+    } catch (const std::exception &e) {
+        std::cerr << "[potrf] future.get() threw std::exception: " << e.what() << "\n";
+        throw;
+    } catch (...) {
+        std::cerr << "[potrf] future.get() threw unknown exception\n";
+        throw;
+    }
 
     // row-major POTRF
     // A = potrf(A)
@@ -23,11 +42,17 @@ potrf(sycl::queue &queue, hpx::shared_future<double *> f_A, const std::size_t N)
     // column-major cuBLAS POTRF for row-major stored A
     // for UPPER part of symmetric positive semi-definite matrix A
 
+    std::cout << "[adapter_onemath.cpp] [potrf] : Calling oneapi::math::lapack::potrf \n";
+
     oneapi::math::lapack::potrf(queue, oneapi::math::uplo::upper, static_cast<std::int64_t>(N), d_A, static_cast<std::int64_t>(N), scratchpad, scratchpad_size);
-        
+    
     queue.wait();
 
+    std::cout << "[adapter_onemath.cpp] [potrf] : Returning from oneapi::math::lapack::potrf \n";
+
     sycl::free(scratchpad, queue);
+
+    std::cout << "[adapter_onemath.cpp] [potrf] : k bye \n";
 
     return hpx::make_ready_future(d_A);
 }
@@ -382,7 +407,7 @@ dot(
     const std::size_t N
 )
 {
-    double *result = sycl::malloc_shared<gprat::sycl_backend::real_t>(1, queue);
+    double *result = sycl::malloc_device<gprat::sycl_backend::real_t>(1, queue);
     queue.fill(result, 0, 1).wait();
 
     double *d_a = f_a.get();

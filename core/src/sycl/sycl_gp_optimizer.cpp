@@ -3,6 +3,11 @@
 #include "sycl/sycl_kernels.hpp"
 #include "sycl/sycl_utils.hpp"
 
+// #ifdef __SYCL_DEVICE_ONLY__
+// #error "DEVICE COMPILATION HAPPENED HERE"
+// #endif
+
+
 namespace gprat::sycl_backend
 {
 
@@ -188,6 +193,42 @@ std::vector<double> gen_tile_grad_v_trans(std::size_t N, const std::vector<doubl
 
 // gen_tile_grad_l_trans //////////////////////////////////////////////////////////////////////////////////////////////
 
+// hpx::shared_future<double *>
+// gen_tile_grad_l_trans(std::size_t N, const hpx::shared_future<double *> f_grad_l_tile, gprat::SYCL_DEVICE &sycl_device)
+// {
+//     try
+//     {
+//         sycl::queue queue = sycl_device.next_queue();
+
+//         double *transposed = sycl::malloc_device<gprat::sycl_backend::real_t>(N * N, queue);
+//         double *d_grad_l_tile = f_grad_l_tile.get();
+
+//         sycl::range<2> global_range(
+//             ((N + WORK_GROUP_SIZE - 1) / WORK_GROUP_SIZE) * WORK_GROUP_SIZE,
+//             ((N + WORK_GROUP_SIZE - 1) / WORK_GROUP_SIZE) * WORK_GROUP_SIZE
+//         );
+        
+//         sycl::range<2> local_range(WORK_GROUP_SIZE, WORK_GROUP_SIZE);
+
+//         auto event = queue.submit
+//         (
+//             [&](sycl::handler &cgh)
+//             {
+//                 auto kernel = TransposeKernel(transposed, d_grad_l_tile, N, N, cgh);
+//                 cgh.parallel_for(sycl::nd_range<2>(global_range, local_range), kernel);
+//             }
+//         );
+
+//         event.wait();
+//         return hpx::make_ready_future(transposed);
+//     }
+//     catch (const sycl::exception& e) 
+//     {
+//         std::cout << "SYCL exception: " << e.what() << "\n";
+//         return hpx::make_ready_future(static_cast<double*>(nullptr));
+//     }
+// }
+
 hpx::shared_future<double *>
 gen_tile_grad_l_trans(std::size_t N, const hpx::shared_future<double *> f_grad_l_tile, gprat::SYCL_DEVICE &sycl_device)
 {
@@ -202,25 +243,29 @@ gen_tile_grad_l_trans(std::size_t N, const hpx::shared_future<double *> f_grad_l
             ((N + WORK_GROUP_SIZE - 1) / WORK_GROUP_SIZE) * WORK_GROUP_SIZE,
             ((N + WORK_GROUP_SIZE - 1) / WORK_GROUP_SIZE) * WORK_GROUP_SIZE
         );
-        
         sycl::range<2> local_range(WORK_GROUP_SIZE, WORK_GROUP_SIZE);
 
-        auto event = queue.submit
-        (
-            [&](sycl::handler &cgh)
-            {
-                auto kernel = TransposeKernel(transposed, d_grad_l_tile, N, N, cgh);
-                cgh.parallel_for(sycl::nd_range<2>(global_range, local_range), kernel);
-            }
-        );
+        auto event = queue.submit([&](sycl::handler &cgh) {
+            cgh.parallel_for(
+                sycl::nd_range<2>(global_range, local_range),
+                [=](sycl::nd_item<2> item) {
+                    std::size_t row = item.get_global_id(0);
+                    std::size_t col = item.get_global_id(1);
+
+                    if (row < N && col < N) {
+                        transposed[row * N + col] = d_grad_l_tile[col * N + row];
+                    }
+                }
+            );
+        });
 
         event.wait();
         return hpx::make_ready_future(transposed);
     }
-    catch (const sycl::exception& e) 
+    catch (const sycl::exception &e)
     {
         std::cout << "SYCL exception: " << e.what() << "\n";
-        return hpx::make_ready_future(static_cast<double*>(nullptr));
+        return hpx::make_ready_future(static_cast<double *>(nullptr));
     }
 }
 

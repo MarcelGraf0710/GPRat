@@ -143,15 +143,16 @@ elif [[ $PRESET == "release-linux-sycl" || $PRESET == "dev-linux-sycl" ]]; then
 	-DCMAKE_C_COMPILER=$(which icx) \
     -DCMAKE_CXX_COMPILER=$(which icpx) \
 	-DGPRAT_WITH_SYCL=ON \
-	-DGPRAT_ENABLE_TESTS=OFF \
-	-DGPRAT_ENABLE_EXAMPLES=OFF 
+	-DGPRAT_ENABLE_TESTS=ON \
+	-DGPRAT_ENABLE_EXAMPLES=OFF \
+	-DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 fi
 
 ################################################################################
 # Compile code
 ################################################################################
-cmake --build --preset $PRESET -- -j
+cmake --build --preset $PRESET -- VERBOSE=1 -j
 cmake --install build/$PRESET
 
 cd build/$PRESET
-ctest --output-on-failure --no-tests=ignore -C Release -j 2
+# ctest --output-on-failure --no-tests=ignore -C Release -j 2

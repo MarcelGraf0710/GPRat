@@ -1,12 +1,6 @@
 # Inner CMakeLists.txt
 
 ### Options #######################################################################################
-
-option(GPRAT_WITH_CUDA "Enable GPU support with CUDA, cuSolver, cuBLAS" OFF)
-if(GPRAT_WITH_CUDA)
-  enable_language(CUDA)
-endif()
-
 option(GPRAT_WITH_SYCL "Enable SYCL support with oneMath" OFF)
 
 add_compile_definitions(
@@ -31,20 +25,6 @@ set(SOURCE_FILES
     src/cpu/adapter_cblas_fp32.cpp
     src/cpu/adapter_cblas_fp64.cpp)
 
-# Add CUDA-specific source files if enabled
-if(GPRAT_WITH_CUDA)
-  list(
-    APPEND
-    SOURCE_FILES
-    src/gpu/cuda/gp_functions.cu
-    src/gpu/cuda/gp_algorithms.cu
-    src/gpu/cuda/gp_uncertainty.cu
-    src/gpu/cuda/gp_optimizer.cu
-    src/gpu/cuda/tiled_algorithms.cu
-    src/gpu/cuda/adapter_cublas.cu
-    src/gpu/cuda/cuda_kernels.cu)
-endif()
-
 # Add SYCL-specific source files if enabled
 if(GPRAT_WITH_SYCL)
   list(
@@ -55,10 +35,17 @@ if(GPRAT_WITH_SYCL)
     src/sycl/sycl_gp_functions.cpp
     src/sycl/sycl_gp_optimizer.cpp
     src/sycl/sycl_gp_uncertainty.cpp
-    src/sycl/sycl_kernels.cpp
     src/sycl/sycl_tiled_algorithms.cpp
     )
 endif()
+#src/sycl/sycl_kernels.cpp
+
+message(STATUS "Added source files:")
+
+foreach(source ${SOURCE_FILES})
+  message("   ${source}")
+endforeach()
+
 
 ### Add GPRat core library ########################################################################
 
@@ -77,15 +64,16 @@ add_library(GPRat::core ALIAS gprat_core)
 file(GLOB_RECURSE header_files CONFIGURE_DEPENDS include/*.hpp
      include/cpu/*.hpp)
 
-if(GPRAT_WITH_CUDA)
-  file(GLOB_RECURSE cuda_headers CONFIGURE_DEPENDS include/gpu/cuda/*.cuh)
-  list(APPEND header_files ${cuda_headers})
-endif()
-
 if(GPRAT_WITH_SYCL)
   file(GLOB_RECURSE sycl_headers CONFIGURE_DEPENDS include/sycl/*.hpp)
   list(APPEND header_files ${sycl_headers})
 endif()
+
+message(STATUS "Added SYCL headers:")
+
+foreach(header ${sycl_headers})
+  message("   ${header}")
+endforeach()
 
 target_sources(gprat_core PRIVATE ${header_files})
 
@@ -104,32 +92,36 @@ endif()
 if(GPRAT_WITH_SYCL)
 
   # simcl1
-  # list(APPEND CMAKE_PREFIX_PATH "/scratch-simcl1/grafml/Programs/oneMath/install/lib/cmake/oneMath")
+  list(APPEND CMAKE_PREFIX_PATH "/scratch-simcl1/grafml/Programs/oneMath/install/lib/cmake/oneMath")
+  # set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-fsycl -fsycl-targets=nvptx64-nvidia-cuda -Xsycl-target-backend=nvptx64-nvidia-cuda")
+  message(STATUS "CMAKE_CXX_FLAGS = ${CMAKE_CXX_FLAGS}")
+  message(STATUS "SYCL_FLAGS = ${SYCL_FLAGS}")
 
   # pcsgs11
-  list(APPEND CMAKE_PREFIX_PATH "/home/grafml/Programs/theRealOneMath/oneMath/install/lib/cmake/oneMath")
+  # list(APPEND CMAKE_PREFIX_PATH "/home/grafml/Programs/theRealOneMath/oneMath/install/lib/cmake/oneMath")
 
   message(STATUS "CMAKE_PREFIX_PATH = ${CMAKE_PREFIX_PATH}")
   find_package(oneMath REQUIRED)
 
-  # simcl1
-  # Apply SYCL compile options only to SYCL source files
-  foreach(sycl_src
-      src/sycl/adapter_onemath.cpp
-      src/sycl/sycl_gp_algorithms.cpp
-      src/sycl/sycl_gp_functions.cpp
-      src/sycl/sycl_gp_optimizer.cpp
-      src/sycl/sycl_gp_uncertainty.cpp
-      src/sycl/sycl_kernels.cpp
-      src/sycl/sycl_tiled_algorithms.cpp
+  # target_compile_options(
+  #   gprat_core PUBLIC
+  #   -fsycl
+  #   -fsycl-targets=nvptx64-nvidia-cuda
+  #   -Xsycl-target-backend=nvptx64-nvidia-cuda
+  #   --cuda-gpu-arch=sm_80
+  # )
+
+  set(SYCL_FLAGS 
+    ${SYCL_FLAGS} 
+    -fsycl 
+    -fsycl-targets=nvptx64-nvidia-cuda 
+    -Xsycl-target-backend=nvptx64-nvidia-cuda 
+    --cuda-gpu-arch=sm_80
   )
-    set_source_files_properties(${sycl_src}
-        PROPERTIES
-        COMPILE_OPTIONS "-fsycl;-fsycl-targets=nvptx64-nvidia-cuda;-Xsycl-target-backend=nvptx64-nvidia-cuda;--cuda-gpu-arch=sm_80"
-    )
-  endforeach()
+  target_compile_options(gprat_core PUBLIC ${SYCL_FLAGS})
 
   # target_link_options(gprat_core PRIVATE -Xsycl-target-backend --fsycl-targets=sm_80)
+  target_link_options(gprat_core PUBLIC ${SYCL_FLAGS})
 
   target_link_libraries(gprat_core PUBLIC
     ONEMATH::onemath_blas_cublas

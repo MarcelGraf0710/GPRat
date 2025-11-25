@@ -8,13 +8,18 @@
 
 #include <hpx/algorithm.hpp>
 
+#include <sstream>
+
+// #ifdef __SYCL_DEVICE_ONLY__
+// #error "DEVICE COMPILATION HAPPENED HERE"
+// #endif
+
 
 namespace gprat::sycl_backend
 {
 
 // SYCL boilerplate code //////////////////////////////////////////////////////////////////////////////////////////////
 
-// Done, check if compiles
 double * gen_tile_covariance(const double *d_input,
                             const std::size_t tile_row,
                             const std::size_t tile_column,
@@ -29,20 +34,26 @@ double * gen_tile_covariance(const double *d_input,
 
         sycl::queue queue = sycl_device.next_queue();
 
-        d_tile = sycl::malloc_shared<gprat::sycl_backend::real_t>(n_tile_size * n_tile_size, queue);
+        std::cout << "[gen_tile_covariance] malloc \n";
+
+        d_tile = sycl::malloc_device<gprat::sycl_backend::real_t>(n_tile_size * n_tile_size, queue);
         
+        std::cout << "[gen_tile_covariance] submit kernel \n";
+
         auto event = queue.submit
         (
             [&](sycl::handler &cgh)
             {
                 auto kernel = GenTileCovarianceKernel(
-                    d_tile, d_input, n_tile_size, n_regressors, tile_row, tile_column, sek_params
+                    d_tile, d_input, n_tile_size, n_regressors, tile_row, tile_column, sek_params, cgh
                 );
                 cgh.parallel_for(sycl::range<2>(n_tile_size, n_tile_size), kernel); 
             }
         );
 
         event.wait();
+
+        std::cout << "[gen_tile_covariance] all done \n";
         return d_tile;
     } 
     catch (const sycl::exception& e) 
@@ -68,7 +79,7 @@ double *gen_tile_full_prior_covariance(
 
         sycl::queue queue = sycl_device.next_queue();
 
-        d_tile = sycl::malloc_shared<gprat::sycl_backend::real_t>(n_tile_size * n_tile_size, queue);
+        d_tile = sycl::malloc_device<gprat::sycl_backend::real_t>(n_tile_size * n_tile_size, queue);
         
         auto event = queue.submit
         (
@@ -107,7 +118,7 @@ double *gen_tile_prior_covariance(
 
         sycl::queue queue = sycl_device.next_queue();
 
-        d_tile = sycl::malloc_shared<gprat::sycl_backend::real_t>(n_tile_size, queue);
+        d_tile = sycl::malloc_device<gprat::sycl_backend::real_t>(n_tile_size, queue);
         
         auto event = queue.submit
         (
@@ -148,7 +159,9 @@ double *gen_tile_cross_covariance(
 
         sycl::queue queue = sycl_device.next_queue();
 
-        d_tile = sycl::malloc_shared<gprat::sycl_backend::real_t>(n_row_tile_size * n_column_tile_size, queue);
+        d_tile = sycl::malloc_device<gprat::sycl_backend::real_t>(n_row_tile_size * n_column_tile_size, queue);
+
+        // std::cout << "[GenTileCrossCovarianceKernel] launched over range " << n_row_tile_size << " x " << n_column_tile_size << "\n";
         
         auto event = queue.submit
         (
@@ -163,7 +176,8 @@ double *gen_tile_cross_covariance(
                     tile_row, 
                     tile_column, 
                     n_regressors, 
-                    sek_params
+                    sek_params,
+                    cgh
                 );
                 cgh.parallel_for(sycl::range<2>(n_row_tile_size, n_column_tile_size), kernel); 
             }
@@ -191,7 +205,7 @@ hpx::shared_future<double *> gen_tile_cross_cov_T(std::size_t n_row_tile_size,
 
         sycl::queue queue = sycl_device.next_queue();
 
-        transposed = sycl::malloc_shared<gprat::sycl_backend::real_t>(n_row_tile_size * n_column_tile_size, queue);
+        transposed = sycl::malloc_device<gprat::sycl_backend::real_t>(n_row_tile_size * n_column_tile_size, queue);
 
         double *d_cross_covariance_tile = f_cross_covariance_tile.get();
 
@@ -236,7 +250,7 @@ gen_tile_output(
 
         sycl::queue queue = sycl_device.next_queue();
 
-        d_tile = sycl::malloc_shared<gprat::sycl_backend::real_t>(n_tile_size * n_tile_size, queue);
+        d_tile = sycl::malloc_device<gprat::sycl_backend::real_t>(n_tile_size * n_tile_size, queue);
         
         auto event = queue.submit
         (
@@ -265,7 +279,7 @@ double *gen_tile_zeros(std::size_t n_tile_size, gprat::SYCL_DEVICE &sycl_device)
         sycl::queue queue = sycl_device.next_queue();
 
         double *d_tile;
-        d_tile = sycl::malloc_shared<gprat::sycl_backend::real_t>(n_tile_size, queue);
+        d_tile = sycl::malloc_device<gprat::sycl_backend::real_t>(n_tile_size, queue);
         queue.fill(d_tile, 0.0, n_tile_size).wait();
         return d_tile;
     }
@@ -300,7 +314,6 @@ double compute_error_norm(std::size_t n_tiles,
 
 // HPX boilerplate code ///////////////////////////////////////////////////////////////////////////////////////////////
 
-// Only minor changes needed, should work OOTB
 std::vector<hpx::shared_future<double *>> assemble_tiled_covariance_matrix(
     const double *d_training_input,
     const std::size_t n_tiles,
@@ -315,16 +328,23 @@ std::vector<hpx::shared_future<double *>> assemble_tiled_covariance_matrix(
     {
         for (std::size_t tile_column = 0; tile_column < tile_row + 1; ++tile_column)
         {
-            d_tiles[tile_row * n_tiles + tile_column] = hpx::async([=,&d_training_input,&sycl_device](){return gen_tile_covariance(
-                d_training_input,
-                tile_row,
-                tile_column,
-                n_tile_size,
-                n_regressors,
-                sek_params,
-                std::ref(sycl_device));});
-        }
+            d_tiles[tile_row * n_tiles + tile_column] = hpx::async([=,&sycl_device]()
+                {
+                    return gen_tile_covariance(
+                        d_training_input,
+                        tile_row,
+                        tile_column,
+                        n_tile_size,
+                        n_regressors,
+                        sek_params,
+                        std::ref(sycl_device)
+                    );
+                }
+            );
+            }
     }
+
+    std::cout << "[gprat::sycl_backend::assemble_tiled_covariance_matrix] All done. " << std::endl;
 
     return d_tiles;
 }
@@ -362,7 +382,7 @@ std::vector<hpx::shared_future<double *>> assemble_cross_covariance_tiles(
         for (std::size_t j = 0; j < n_tiles; j++)
         {
             cross_covariance_tiles[i * n_tiles + j] =
-                hpx::async([=,&d_test_input,&d_training_input,&sycl_device](){
+                hpx::async([=,&sycl_device](){
                 return gen_tile_cross_covariance(
                 d_test_input,
                 d_training_input,
@@ -403,7 +423,7 @@ std::vector<hpx::shared_future<double *>> assemble_prior_K_tiles(
     d_prior_K_tiles.resize(m_tiles);
     for (std::size_t i = 0; i < m_tiles; i++)
     {
-        d_prior_K_tiles[i] = hpx::async([=,&d_test_input,&sycl_device](){
+        d_prior_K_tiles[i] = hpx::async([=,&sycl_device](){
             return gen_tile_prior_covariance(d_test_input, i, i, m_tile_size, n_regressors, sek_params, std::ref(sycl_device)); });
     }
     return d_prior_K_tiles;
