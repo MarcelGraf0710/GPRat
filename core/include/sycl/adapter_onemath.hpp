@@ -25,8 +25,8 @@
  *
  * @return factorized, lower triangular matrix f_L, in-place update of f_A
  */
-hpx::shared_future<double *>
-potrf(sycl::queue &queue, hpx::shared_future<double *> f_A, const std::size_t N);
+double *
+potrf(sycl::queue &queue, double *f_A, const std::size_t N);
 
 /**
  * @brief In-place solve A(^T) * X = B or X * A(^T) = B for lower triangular A
@@ -42,10 +42,11 @@ potrf(sycl::queue &queue, hpx::shared_future<double *> f_A, const std::size_t N)
  *
  * @return solution matrix f_X, in-place update of f_B
  */
-hpx::shared_future<double *>
-trsm(sycl::queue &queue,
-     hpx::shared_future<double *> f_A,
-     hpx::shared_future<double *> f_B,
+double *
+trsm(
+     sycl::queue &queue,
+     double *f_A,
+     double *f_B,
      const std::size_t M,
      const std::size_t N,
      const oneapi::math::transpose is_transposed,
@@ -61,10 +62,10 @@ trsm(sycl::queue &queue,
  *
  * @return updated matrix f_A, inplace update
  */
-hpx::shared_future<double *>
+double *
 syrk(sycl::queue &queue,
-     hpx::shared_future<double *> f_A,
-     hpx::shared_future<double *> f_C,
+     double *f_A,
+     double *f_C,
      const std::size_t N);
 
 /**
@@ -82,11 +83,11 @@ syrk(sycl::queue &queue,
  *
  * @return updated matrix f_C, in-place update
  */
-hpx::shared_future<double *>
+double *
 gemm(sycl::queue &queue,
-     hpx::shared_future<double *> f_A,
-     hpx::shared_future<double *> f_B,
-     hpx::shared_future<double *> f_C,
+     double *f_A,
+     double *f_B,
+     double *f_C,
      const std::size_t M,
      const std::size_t N,
      const std::size_t K,

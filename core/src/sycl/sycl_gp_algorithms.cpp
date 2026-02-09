@@ -328,19 +328,32 @@ std::vector<hpx::shared_future<double *>> assemble_tiled_covariance_matrix(
     {
         for (std::size_t tile_column = 0; tile_column < tile_row + 1; ++tile_column)
         {
-            d_tiles[tile_row * n_tiles + tile_column] = hpx::async([=,&sycl_device]()
-                {
-                    return gen_tile_covariance(
+            // d_tiles[tile_row * n_tiles + tile_column] = hpx::async([=,&sycl_device]()
+            //     {
+            //         return gen_tile_covariance(
+            //             d_training_input,
+            //             tile_row,
+            //             tile_column,
+            //             n_tile_size,
+            //             n_regressors,
+            //             sek_params,
+            //             std::ref(sycl_device)
+            //         );
+            //     }
+            // );
+                double *result = gen_tile_covariance(
                         d_training_input,
                         tile_row,
                         tile_column,
                         n_tile_size,
                         n_regressors,
                         sek_params,
-                        std::ref(sycl_device)
+                        std::ref(sycl_device)   
                     );
-                }
-            );
+
+                std::cout << "[sycl_gp_algorithms.cpp/assemble_tiled_covariance_matrix] returned from gen_tile_covariance\n";
+
+                d_tiles[tile_row * n_tiles + tile_column] = hpx::make_ready_future<double *>(result);
             }
     }
 

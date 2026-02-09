@@ -2,10 +2,25 @@
 
 // BLAS LEVEL 3 OPERATIONS ////////////////////////////////////////////////////////////////////////////////////////////
 
-hpx::shared_future<double *>
-potrf(sycl::queue &queue, hpx::shared_future<double *> f_A, const std::size_t N)
+double *
+potrf(sycl::queue &queue, double *f_A, const std::size_t N)
 {
     std::cout << "[adapter_onemath.cpp] [potrf] : Entering \n";
+
+    std::cout << "[adapter_onemath.cpp] [potrf] : HPX moment \n";
+
+    gprat::sycl_backend::real_t *d_A;
+
+    try {
+        d_A = f_A;
+        std::cout << "[potrf] got d_A = " << d_A << "\n";
+    } catch (const std::exception &e) {
+        std::cerr << "[potrf] future.get() threw std::exception: " << e.what() << "\n";
+        throw;
+    } catch (...) {
+        std::cerr << "[potrf] future.get() threw unknown exception\n";
+        throw;
+    }
 
     std::cout << "[adapter_onemath.cpp] [potrf] : Calculating scratchpad size \n";
 
@@ -19,21 +34,6 @@ potrf(sycl::queue &queue, hpx::shared_future<double *> f_A, const std::size_t N)
     std::cout << "[adapter_onemath.cpp] [potrf] : Assigning scratchpad \n";
 
     gprat::sycl_backend::real_t *scratchpad = sycl::malloc_device<gprat::sycl_backend::real_t>(static_cast<std::size_t>(scratchpad_size), queue);
-
-    std::cout << "[adapter_onemath.cpp] [potrf] : HPX moment \n";
-
-    gprat::sycl_backend::real_t *d_A;
-
-    try {
-        d_A = f_A.get();
-        std::cout << "[potrf] got d_A = " << d_A << "\n";
-    } catch (const std::exception &e) {
-        std::cerr << "[potrf] future.get() threw std::exception: " << e.what() << "\n";
-        throw;
-    } catch (...) {
-        std::cerr << "[potrf] future.get() threw unknown exception\n";
-        throw;
-    }
 
     // row-major POTRF
     // A = potrf(A)
@@ -54,23 +54,24 @@ potrf(sycl::queue &queue, hpx::shared_future<double *> f_A, const std::size_t N)
 
     std::cout << "[adapter_onemath.cpp] [potrf] : k bye \n";
 
-    return hpx::make_ready_future(d_A);
+    return d_A;
 }
 
-
-hpx::shared_future<double *>
-trsm(sycl::queue &queue,
-     hpx::shared_future<double *> f_A,
-     hpx::shared_future<double *> f_B,
+double *
+trsm(
+     sycl::queue &queue,
+     double *f_A,
+     double *f_B,
      const std::size_t M,
      const std::size_t N,
      const oneapi::math::transpose is_transposed,
      const oneapi::math::side is_right)
 {
+    std::cout << "[adapter_onemath.cpp] [trsm] : Entering \n";
     // TRSM constants
     const double alpha = 1.0;
-    double *d_A = f_A.get();
-    double *d_B = f_B.get();
+    double *d_A = f_A;
+    double *d_B = f_B;
 
     // row-major TRSM solves for X
     //
@@ -102,21 +103,23 @@ trsm(sycl::queue &queue,
         static_cast<std::int64_t>(N));
 
     queue.wait();
+    std::cout << "[adapter_onemath.cpp] [trsm] : Leaving \n";
     
-    return hpx::make_ready_future(d_B);
+    return d_B;
 }
 
-hpx::shared_future<double *>
+double *
 syrk(sycl::queue &queue,
-     hpx::shared_future<double *> f_A,
-     hpx::shared_future<double *> f_C,
+     double *f_A,
+     double *f_C,
      const std::size_t N)
 {
+    std::cout << "[adapter_onemath.cpp] [syrk] : Entering \n";
     // SYRK constants
     const double alpha = -1.0;
     const double beta = 1.0;
-    double *d_A = f_A.get();
-    double *d_C = f_C.get();
+    double *d_A = f_A;
+    double *d_C = f_C;
 
     // row-major SYRK
     // C = alpha * op(A) * op(A)^T + beta * C
@@ -145,25 +148,29 @@ syrk(sycl::queue &queue,
 
     queue.wait();
 
-    return hpx::make_ready_future(d_C);
+    std::cout << "[adapter_onemath.cpp] [syrk] : Leaving \n";
+
+    return d_C;
 }
 
-hpx::shared_future<double *>
+double *
 gemm(sycl::queue &queue,
-     hpx::shared_future<double *> f_A,
-     hpx::shared_future<double *> f_B,
-     hpx::shared_future<double *> f_C,
+     double *f_A,
+     double *f_B,
+     double *f_C,
      const std::size_t M,
      const std::size_t N,
      const std::size_t K,
      const oneapi::math::transpose is_A_transposed,
      const oneapi::math::transpose is_B_transposed)
 {
+    std::cout << "[adapter_onemath.cpp] [gemm] : Entering \n";
+
     const double alpha = -1.0;
     const double beta = 1.0;
-    double *d_A = f_A.get();
-    double *d_B = f_B.get();
-    double *d_C = f_C.get();
+    double *d_A = f_A;
+    double *d_B = f_B;
+    double *d_C = f_C;
 
     // row-major GEMM
     // C = alpha * op(A) * op(B) + beta * C
@@ -194,7 +201,9 @@ gemm(sycl::queue &queue,
 
     queue.wait();
 
-    return hpx::make_ready_future(d_C);
+    std::cout << "[adapter_onemath.cpp] [gemm] : Leaving \n";
+
+    return d_C;
 }
 
 // BLAS LEVEL 2 OPERATIONS ////////////////////////////////////////////////////////////////////////////////////////////

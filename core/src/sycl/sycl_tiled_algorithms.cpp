@@ -29,19 +29,22 @@ void right_looking_cholesky_tiled(
 
         queue = sycl_device.next_queue();
 
-        std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : POTRF \n";
+        std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : POTRF with index " << static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k) << "\n";
 
-        // POTRF
-        ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)] = hpx::dataflow(
-            [&](){ return potrf(
-            queue,
-            ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)],
-            n_tile_size); }
+        // ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)] = hpx::dataflow(
+        //     [&queue, &ft_tiles, n_tile_size, n_tiles, k](double* pointer){ return potrf(queue, pointer, n_tile_size); },
+        //     hpx::unwrap(ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)])
+        // );
+
+        ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)] = hpx::make_ready_future<double *>(
+            potrf(queue, ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)].get(), n_tile_size)
         );
+
+        std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : POTRF submitted, waiting for result \n";
 
         // NOTE: The result is immediately needed by TRSM. Also TRSM may throw
         // an error otherwise.
-        ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)].get();
+        // ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)].get();
 
         std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : Entering loop BETA \n";
 
@@ -52,48 +55,59 @@ void right_looking_cholesky_tiled(
 
             std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : TRSM \n";
 
-            // TRSM
-            ft_tiles[m * n_tiles + k] = hpx::dataflow(
-                [&](){ return trsm(
+            ft_tiles[m * n_tiles + k] = hpx::make_ready_future<double *>(
+                trsm(
                 queue,
-                ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)],
-                ft_tiles[m * n_tiles + k],
+                ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)].get(),
+                ft_tiles[m * n_tiles + k].get(),
                 n_tile_size,
                 n_tile_size,
                 oneapi::math::transpose::trans,
-                oneapi::math::side::right); }
+                oneapi::math::side::right)
             );
+
+            // // TRSM
+            // ft_tiles[m * n_tiles + k] = hpx::dataflow(
+            //     [&queue, &ft_tiles, n_tile_size, n_tiles, k, m]{ return trsm(
+            //     queue,
+            //     ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)].get(),
+            //     ft_tiles[m * n_tiles + k].get(),
+            //     n_tile_size,
+            //     n_tile_size,
+            //     oneapi::math::transpose::trans,
+            //     oneapi::math::side::right); }
+            // );
         }
 
-        std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : Entering loop GAMMA \n";
+        // std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : Entering loop GAMMA \n";
 
         for (std::size_t m = k + 1; m < n_tiles; ++m)
         {
-            std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : LOOP GAMMA : ITERATION " << m << " \n";
+            // std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : LOOP GAMMA : ITERATION " << m << " \n";
             queue = sycl_device.next_queue();
 
             std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : SYRK \n";
 
             // SYRK
             ft_tiles[m * n_tiles + m] =
-                hpx::dataflow([&]() {return syrk(queue, ft_tiles[m * n_tiles + k], ft_tiles[m * n_tiles + m], n_tile_size);});
+                hpx::dataflow([&queue, &ft_tiles, n_tile_size, n_tiles, k, m]() {return syrk(queue, ft_tiles[m * n_tiles + k].get(), ft_tiles[m * n_tiles + m].get(), n_tile_size);});
 
-            std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : Entering loop DELTA \n";
+            // std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : Entering loop DELTA \n";
 
             for (std::size_t n = k + 1; n < m; ++n)
             {
-                std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : LOOP DELTA : ITERATION " << n << " \n";
+                // std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : LOOP DELTA : ITERATION " << n << " \n";
                 queue = sycl_device.next_queue();
 
                 std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : GEMM \n";
 
                 // GEMM
                 ft_tiles[m * n_tiles + n] = hpx::dataflow(
-                    [&]() { return gemm(
+                    [&queue, &ft_tiles, n_tile_size, n_tiles, k, m, n]() { return gemm(
                     queue,
-                    ft_tiles[m * n_tiles + k],
-                    ft_tiles[n * n_tiles + k],
-                    ft_tiles[m * n_tiles + n],
+                    ft_tiles[m * n_tiles + k].get(),
+                    ft_tiles[n * n_tiles + k].get(),
+                    ft_tiles[m * n_tiles + n].get(),
                     n_tile_size,
                     n_tile_size,
                     n_tile_size,
@@ -222,8 +236,8 @@ void forward_solve_tiled_matrix(
                 [&]() {
                 return trsm(
                 queue,
-                ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)],
-                ft_rhs[static_cast<std::size_t>(k * m_tiles + c)],
+                ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)].get(),
+                ft_rhs[static_cast<std::size_t>(k * m_tiles + c)].get(),
                 n_tile_size,
                 m_tile_size,
                 oneapi::math::transpose::nontrans,
@@ -238,9 +252,9 @@ void forward_solve_tiled_matrix(
                 ft_rhs[m * m_tiles + c] = hpx::dataflow(
                     [&]() { return gemm(
                     queue,
-                    ft_tiles[m * n_tiles + k],
-                    ft_rhs[static_cast<std::size_t>(k * m_tiles + c)],
-                    ft_rhs[m * m_tiles + c],
+                    ft_tiles[m * n_tiles + k].get(),
+                    ft_rhs[static_cast<std::size_t>(k * m_tiles + c)].get(),
+                    ft_rhs[m * m_tiles + c].get(),
                     n_tile_size,
                     m_tile_size,
                     n_tile_size,
@@ -275,8 +289,8 @@ void backward_solve_tiled_matrix(
                 [&]() {
                 return trsm(
                 queue,
-                ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)],
-                ft_rhs[static_cast<std::size_t>(k * m_tiles + c)],
+                ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)].get(),
+                ft_rhs[static_cast<std::size_t>(k * m_tiles + c)].get(),
                 n_tile_size,
                 m_tile_size,
                 oneapi::math::transpose::trans,
@@ -292,9 +306,9 @@ void backward_solve_tiled_matrix(
                     [&]() {
                     return gemm(
                     queue,
-                    ft_tiles[k * n_tiles + m],
-                    ft_rhs[static_cast<std::size_t>(k * m_tiles + c)],
-                    ft_rhs[m * m_tiles + c],
+                    ft_tiles[k * n_tiles + m].get(),
+                    ft_rhs[static_cast<std::size_t>(k * m_tiles + c)].get(),
+                    ft_rhs[m * m_tiles + c].get(),
                     n_tile_size,
                     m_tile_size,
                     n_tile_size,
@@ -452,9 +466,9 @@ void symmetric_matrix_matrix_tiled(
                     [&]() {
                     return gemm(
                     queue,
-                    ft_tCC_tiles[m * m_tiles + c],
-                    ft_tCC_tiles[m * m_tiles + k],
-                    ft_priorK[c * m_tiles + k],
+                    ft_tCC_tiles[m * m_tiles + c].get(),
+                    ft_tCC_tiles[m * m_tiles + k].get(),
+                    ft_priorK[c * m_tiles + k].get(),
                     n_tile_size,
                     m_tile_size,
                     m_tile_size,

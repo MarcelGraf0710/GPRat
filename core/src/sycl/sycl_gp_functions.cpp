@@ -71,6 +71,8 @@ predict(
         sycl_device
     );
 
+    std::cout << "[sycl_gp_functions.cpp] [predict] : d_tiles has size " << d_tiles.size() << "\n";
+
     std::cout << "[sycl_gp_functions.cpp] [predict] : Accessing assemble_alpha_tiles \n";
 
     auto alpha_tiles = assemble_alpha_tiles(d_training_output, static_cast<std::size_t>(n_tiles), static_cast<std::size_t>(n_tile_size), sycl_device);
