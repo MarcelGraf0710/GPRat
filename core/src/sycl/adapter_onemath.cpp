@@ -7,22 +7,10 @@ potrf(sycl::queue queue, double *f_A, const std::size_t N)
 {
     std::cout << "[adapter_onemath.cpp] [potrf] : Entering \n";
 
-    std::cout << "[adapter_onemath.cpp] [potrf] : HPX moment \n";
+    auto ptype_A = sycl::get_pointer_type(f_A, queue.get_context());
 
-    gprat::sycl_backend::real_t *d_A;
-
-    try {
-        d_A = f_A;
-        std::cout << "[potrf] got d_A = " << d_A << "\n";
-    } catch (const std::exception &e) {
-        std::cerr << "[potrf] future.get() threw std::exception: " << e.what() << "\n";
-        throw;
-    } catch (...) {
-        std::cerr << "[potrf] future.get() threw unknown exception\n";
-        throw;
-    }
-
-    std::cout << "[adapter_onemath.cpp] [potrf] : Calculating scratchpad size \n";
+    std::cout << "[adapter_onemath.cpp] [potrf] : Pointer types - A: " 
+    << usm_alloc_to_string(ptype_A) << "\n";
 
     std::int64_t scratchpad_size = oneapi::math::lapack::potrf_scratchpad_size<double>(
         queue, 
@@ -30,8 +18,6 @@ potrf(sycl::queue queue, double *f_A, const std::size_t N)
         static_cast<std::int64_t>(N), 
         static_cast<std::int64_t>(N)
     );
-
-    std::cout << "[adapter_onemath.cpp] [potrf] : Assigning scratchpad \n";
 
     gprat::sycl_backend::real_t *scratchpad = sycl::malloc_device<gprat::sycl_backend::real_t>(static_cast<std::size_t>(scratchpad_size), queue);
 
@@ -42,19 +28,17 @@ potrf(sycl::queue queue, double *f_A, const std::size_t N)
     // column-major cuBLAS POTRF for row-major stored A
     // for UPPER part of symmetric positive semi-definite matrix A
 
-    std::cout << "[adapter_onemath.cpp] [potrf] : Calling oneapi::math::lapack::potrf \n";
+    queue.wait();
 
-    oneapi::math::lapack::potrf(queue, oneapi::math::uplo::upper, static_cast<std::int64_t>(N), d_A, static_cast<std::int64_t>(N), scratchpad, scratchpad_size);
+    oneapi::math::lapack::potrf(queue, oneapi::math::uplo::upper, static_cast<std::int64_t>(N), f_A, static_cast<std::int64_t>(N), scratchpad, scratchpad_size);
     
     queue.wait();
 
-    std::cout << "[adapter_onemath.cpp] [potrf] : Returning from oneapi::math::lapack::potrf \n";
-
     sycl::free(scratchpad, queue);
 
-    std::cout << "[adapter_onemath.cpp] [potrf] : k bye \n";
+    std::cout << "[adapter_onemath.cpp] [potrf] : Leaving \n";
 
-    return d_A;
+    return f_A;
 }
 
 double *
@@ -70,8 +54,13 @@ trsm(
     std::cout << "[adapter_onemath.cpp] [trsm] : Entering \n";
     // TRSM constants
     const double alpha = 1.0;
-    double *d_A = f_A;
-    double *d_B = f_B;
+
+    auto ptype_A = sycl::get_pointer_type(f_A, queue.get_context());
+    auto ptype_B = sycl::get_pointer_type(f_B, queue.get_context());
+
+    std::cout << "[adapter_onemath.cpp] [trsm] : Pointer types - A: " 
+    << usm_alloc_to_string(ptype_A) << ", B: " 
+    << usm_alloc_to_string(ptype_B) << "\n";
 
     // row-major TRSM solves for X
     //
@@ -88,6 +77,8 @@ trsm(
     // column-major cuBLAS TRSM for row-major stored A & B
     // for X on opposite side (opposite of side_A)
 
+    queue.wait();
+
     oneapi::math::blas::column_major::trsm(
         queue,
         invert_side_operator(is_right),
@@ -97,15 +88,15 @@ trsm(
         static_cast<std::int64_t>(M),
         static_cast<std::int64_t>(N),
         alpha,
-        d_A,
+        f_A,
         static_cast<std::int64_t>(M),
-        d_B,
+        f_B,
         static_cast<std::int64_t>(N));
 
     queue.wait();
     std::cout << "[adapter_onemath.cpp] [trsm] : Leaving \n";
     
-    return d_B;
+    return f_B;
 }
 
 double *
@@ -118,8 +109,13 @@ syrk(sycl::queue queue,
     // SYRK constants
     const double alpha = -1.0;
     const double beta = 1.0;
-    double *d_A = f_A;
-    double *d_C = f_C;
+
+    auto ptype_A = sycl::get_pointer_type(f_A, queue.get_context());
+    auto ptype_C = sycl::get_pointer_type(f_C, queue.get_context());
+
+    std::cout << "[adapter_onemath.cpp] [syrk] : Pointer types - A: " 
+    << usm_alloc_to_string(ptype_A) << ", C: " 
+    << usm_alloc_to_string(ptype_C) << "\n";
 
     // row-major SYRK
     // C = alpha * op(A) * op(A)^T + beta * C
@@ -133,6 +129,8 @@ syrk(sycl::queue queue,
     // for UPPER part of symmetric matrix C
     // for op: TRANSPOSE
 
+    queue.wait();
+
     oneapi::math::blas::column_major::syrk(
         queue,
         oneapi::math::uplo::upper,
@@ -140,17 +138,17 @@ syrk(sycl::queue queue,
         static_cast<std::int64_t>(N),
         static_cast<std::int64_t>(N),
         alpha,
-        d_A,
+        f_A,
         static_cast<std::int64_t>(N),
         beta,
-        d_C,
+        f_C,
         static_cast<std::int64_t>(N));
 
     queue.wait();
 
     std::cout << "[adapter_onemath.cpp] [syrk] : Leaving \n";
 
-    return d_C;
+    return f_C;
 }
 
 double *
@@ -168,9 +166,6 @@ gemm(sycl::queue queue,
 
     const double alpha = -1.0;
     const double beta = 1.0;
-    double *d_A = f_A;
-    double *d_B = f_B;
-    double *d_C = f_C;
 
     // row-major GEMM
     // C = alpha * op(A) * op(B) + beta * C
@@ -183,6 +178,17 @@ gemm(sycl::queue queue,
     //   = op(B) * op(A) - C
     // for inverted ordering of matrices A, B
 
+    auto ptype_A = sycl::get_pointer_type(f_A, queue.get_context());
+    auto ptype_B = sycl::get_pointer_type(f_B, queue.get_context());
+    auto ptype_C = sycl::get_pointer_type(f_C, queue.get_context());
+
+    std::cout << "[adapter_onemath.cpp] [gemm] : Pointer types - A: " 
+    << usm_alloc_to_string(ptype_A) << ", B: " 
+    << usm_alloc_to_string(ptype_B) << ", C: " 
+    << usm_alloc_to_string(ptype_C) << "\n";
+
+    queue.wait();
+
     oneapi::math::blas::column_major::gemm(
         queue,
         is_B_transposed,
@@ -191,32 +197,37 @@ gemm(sycl::queue queue,
         static_cast<std::int64_t>(M),
         static_cast<std::int64_t>(K),
         alpha,
-        d_B,
+        f_B,
         static_cast<std::int64_t>(N),
-        d_A,
+        f_A,
         static_cast<std::int64_t>(K),
         beta,
-        d_C,
+        f_C,
         static_cast<std::int64_t>(N)); 
 
     queue.wait();
 
     std::cout << "[adapter_onemath.cpp] [gemm] : Leaving \n";
 
-    return d_C;
+    return f_C;
 }
 
 // BLAS LEVEL 2 OPERATIONS ////////////////////////////////////////////////////////////////////////////////////////////
 
-hpx::shared_future<double *>
+double *
 trsv(sycl::queue queue,
-     hpx::shared_future<double *> f_A,
-     hpx::shared_future<double *> f_b,
+     double *f_A,
+     double *f_b,
      const std::size_t N,
      const oneapi::math::transpose is_A_transposed)
 {
-    double *d_A = f_A.get();
-    double *d_b = f_b.get();
+    std::cout << "[adapter_onemath.cpp] [trsv] : Entering \n";
+    auto ptype_A = sycl::get_pointer_type(f_A, queue.get_context());
+    auto ptype_B = sycl::get_pointer_type(f_b, queue.get_context());
+
+    std::cout << "[adapter_onemath.cpp] [trsv] : Pointer types - A: " 
+    << usm_alloc_to_string(ptype_A) << ", b: " 
+    << usm_alloc_to_string(ptype_B) << "\n";
 
     // row-major TRSV solves for x
     // op(A) * x = b
@@ -227,39 +238,47 @@ trsv(sycl::queue queue,
     // for op: opposite of transpose_A
     // for UPPER part of lower triangular matrix A
 
+    queue.wait();
+
     oneapi::math::blas::column_major::trsv(
         queue,
         oneapi::math::uplo::upper,
         invert_transpose_operator(is_A_transposed),
         oneapi::math::diag::nonunit,
         static_cast<std::int64_t>(N),
-        d_A,
+        f_A,
         static_cast<std::int64_t>(N),
-        d_b,
+        f_b,
         1);
 
     queue.wait();
-
+    std::cout << "[adapter_onemath.cpp] [trsv] : Leaving \n";
     // return solution vector x
-    return hpx::make_ready_future(d_b);
+    return f_b;
 }
 
-hpx::shared_future<double *>
+double *
 gemv(sycl::queue queue,
-     hpx::shared_future<double *> f_A,
-     hpx::shared_future<double *> f_x,
-     hpx::shared_future<double *> f_y,
+     double *f_A,
+     double *f_x,
+     double *f_y,
      const std::size_t M,
      const std::size_t N,
      const double alpha,
      const oneapi::math::transpose is_A_transposed)
 {
-    auto d_A = f_A.get();
-    auto d_x = f_x.get();
-    auto d_y = f_y.get();
-
+    std::cout << "[adapter_onemath.cpp] [gemv] : Entering \n";
     const double alpha_value = alpha;
     const double beta = 1.0;
+
+    auto ptype_A = sycl::get_pointer_type(f_A, queue.get_context());
+    auto ptype_B = sycl::get_pointer_type(f_x, queue.get_context());
+    auto ptype_C = sycl::get_pointer_type(f_y, queue.get_context());
+
+    std::cout << "[adapter_onemath.cpp] [gemv] : Pointer types - A: " 
+    << usm_alloc_to_string(ptype_A) << ", x: " 
+    << usm_alloc_to_string(ptype_B) << ", y: " 
+    << usm_alloc_to_string(ptype_C) << "\n";
 
     // row-major GEMV
     // y = alpha * op(A) * x + beta * y
@@ -271,37 +290,48 @@ gemv(sycl::queue queue,
     // column-major cuBLAS GEMV for row-major stored A (and x,y)
     // for op: opposite of transpose_A
 
+    queue.wait();
+
     oneapi::math::blas::column_major::gemv(
         queue,
         invert_transpose_operator(is_A_transposed),
         static_cast<std::int64_t>(N),
         static_cast<std::int64_t>(M),
         alpha_value,
-        d_A,
+        f_A,
         static_cast<std::int64_t>(N),
-        d_x,
+        f_x,
         1,
         beta,
-        d_y,
+        f_y,
         1);
 
     queue.wait();
 
+    std::cout << "[adapter_onemath.cpp] [gemv] : Leaving \n";
+
     // return updated vector b
-    return hpx::make_ready_future(d_y);
+    return f_y;
 }
 
-hpx::shared_future<double *>
+double *
 ger(sycl::queue queue,
-    hpx::shared_future<double *> f_A,
-    hpx::shared_future<double *> f_x,
-    hpx::shared_future<double *> f_y,
+    double *f_A,
+    double *f_x,
+    double *f_y,
     const std::size_t N)
 {
-    double *d_A = f_A.get();
-    double *d_x = f_x.get();
-    double *d_y = f_y.get();
+    std::cout << "[adapter_onemath.cpp] [ger] : Entering \n";
     const double alpha = -1.0;
+
+    auto ptype_A = sycl::get_pointer_type(f_A, queue.get_context());
+    auto ptype_B = sycl::get_pointer_type(f_x, queue.get_context());
+    auto ptype_C = sycl::get_pointer_type(f_y, queue.get_context());
+
+    std::cout << "[adapter_onemath.cpp] [ger] : Pointer types - A: " 
+    << usm_alloc_to_string(ptype_A) << ", x: " 
+    << usm_alloc_to_string(ptype_B) << ", y: " 
+    << usm_alloc_to_string(ptype_C) << "\n";
 
     // row-major GER
     // A = alpha * x*y^T + A
@@ -312,12 +342,14 @@ ger(sycl::queue queue,
     //   = -y*x^T + A
     // for opposite order of x,y
 
-    oneapi::math::blas::column_major::ger(queue, static_cast<std::int64_t>(N), static_cast<std::int64_t>(N), alpha, d_y, 1, d_x, 1, d_A, static_cast<std::int64_t>(N));
+    queue.wait();
+
+    oneapi::math::blas::column_major::ger(queue, static_cast<std::int64_t>(N), static_cast<std::int64_t>(N), alpha, f_y, 1, f_x, 1, f_A, static_cast<std::int64_t>(N));
 
     queue.wait();
 
-    // Return updated A
-    return hpx::make_ready_future(d_A);
+    std::cout << "[adapter_onemath.cpp] [ger] : Leaving \n";
+    return f_A;
 }
 
 DotDiagSyrkKernel::DotDiagSyrkKernel(double *d_A, double *d_r, const std::size_t M, const std::size_t N):
@@ -335,23 +367,20 @@ void DotDiagSyrkKernel::operator()(const sycl::id<1> &id) const
     d_r[id] += dot_product;
 }
 
-hpx::shared_future<double *>
+double *
 dot_diag_syrk(sycl::queue queue,
-              hpx::shared_future<double *> f_A,
-              hpx::shared_future<double *> f_r,
+              double *f_A,
+              double *f_r,
               const std::size_t M,
               const std::size_t N)
 {
-    auto d_A = f_A.get();
-    auto d_r = f_r.get();
-
     // r = r + diag(A^T * A)
 
     auto event = queue.submit
     (
         [&](sycl::handler &cgh)
         {
-            auto kernel = DotDiagSyrkKernel(d_A, d_r, M, N);
+            auto kernel = DotDiagSyrkKernel(f_A, f_r, M, N);
             cgh.parallel_for(
                 sycl::range<1>(N), kernel
             );
@@ -359,7 +388,7 @@ dot_diag_syrk(sycl::queue queue,
     );
     event.wait();
 
-    return hpx::make_ready_future(d_r);
+    return f_r;
 }
 
 
@@ -378,24 +407,20 @@ void DotDiagGemmKernel::operator()(const sycl::id<1> &id) const
     r[id] += dot_product;
 }
 
-hpx::shared_future<double *>
+double *
 dot_diag_gemm(sycl::queue queue,
-              hpx::shared_future<double *> f_A,
-              hpx::shared_future<double *> f_B,
-              hpx::shared_future<double *> f_r,
+              double *f_A,
+              double *f_B,
+              double *f_r,
               const std::size_t M,
               const std::size_t N)
 {
-    double *d_A = f_A.get();
-    double *d_B = f_B.get();
-    double *d_r = f_r.get();
-
     // r = r + diag(A * B)
     auto event = queue.submit
     (
         [&](sycl::handler &cgh)
         {
-            auto kernel = DotDiagGemmKernel(d_A, d_B, d_r, M, N);
+            auto kernel = DotDiagGemmKernel(f_A, f_B, f_r, M, N);
             cgh.parallel_for(
                 sycl::range<1>(N), kernel
             );
@@ -403,28 +428,25 @@ dot_diag_gemm(sycl::queue queue,
     );
     event.wait();
 
-    return hpx::make_ready_future(d_r);
+    return f_r;
 }
 
 // BLAS LEVEL 1 OPERATIONS ////////////////////////////////////////////////////////////////////////////////////////////
 
-hpx::shared_future<double *>
+double *
 dot(
     sycl::queue queue,
-    hpx::shared_future<double *> f_a,
-    hpx::shared_future<double *> f_b,
+    double *f_a,
+    double *f_b,
     const std::size_t N
 )
 {
     double *result = sycl::malloc_device<gprat::sycl_backend::real_t>(1, queue);
     queue.fill(result, 0, 1).wait();
 
-    double *d_a = f_a.get();
-    double *d_b = f_b.get();
-
-    oneapi::math::blas::column_major::dot(queue, static_cast<std::int64_t>(N), d_a, 1, d_b, 1, result);
+    oneapi::math::blas::column_major::dot(queue, static_cast<std::int64_t>(N), f_a, 1, f_b, 1, result);
 
     queue.wait();
 
-    return hpx::make_ready_future(result);
+    return result;
 }

@@ -287,7 +287,7 @@ double compute_loss(
     // l = y^T * alpha + \sum_i^N log(L_ii^2)
     double l;
     // Compute y^T * alpha
-    l = *(dot(queue, y_tile, alpha_tile, N).get());
+    l = *(dot(queue, y_tile.get(), alpha_tile.get(), N));
     // Compute \sum_i^N log(L_ii^2)
     for (std::size_t i = 0; i < N; i++)
     {

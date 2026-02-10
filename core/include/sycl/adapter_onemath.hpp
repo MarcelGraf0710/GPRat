@@ -14,6 +14,23 @@
 
 #include <oneapi/math.hpp>
 
+inline const char* usm_alloc_to_string(sycl::usm::alloc a)
+{
+    switch (a)
+    {
+        case sycl::usm::alloc::host:
+            return "usm::alloc::host";
+        case sycl::usm::alloc::device:
+            return "usm::alloc::device";
+        case sycl::usm::alloc::shared:
+            return "usm::alloc::shared";
+        case sycl::usm::alloc::unknown:
+            return "usm::alloc::unknown";
+        default:
+            return "usm::alloc::<invalid>";
+    }
+}
+
 // BLAS LEVEL 3 OPERATIONS ////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
@@ -106,10 +123,10 @@ gemm(sycl::queue queue,
  *
  * @return solution vector f_x, in-place update of b
  */
-hpx::shared_future<double *>
+double *
 trsv(sycl::queue queue,
-     hpx::shared_future<double *> f_A,
-     hpx::shared_future<double *> f_b,
+     double * f_A,
+     double * f_b,
      const std::size_t N,
      const oneapi::math::transpose is_A_transposed);
 
@@ -126,11 +143,11 @@ trsv(sycl::queue queue,
  *
  * @return updated vector f_y, in-place update
  */
-hpx::shared_future<double *>
+double *
 gemv(sycl::queue queue,
-     hpx::shared_future<double *> f_A,
-     hpx::shared_future<double *> f_x,
-     hpx::shared_future<double *> f_y,
+     double * f_A,
+     double * f_x,
+     double * f_y,
      const std::size_t M,
      const std::size_t N,
      const double alpha,
@@ -147,11 +164,11 @@ gemv(sycl::queue queue,
  *
  * @return vector f_b, in-place update
  */
-hpx::shared_future<double *>
+double *
 ger(sycl::queue queue,
-    hpx::shared_future<double *> f_A,
-    hpx::shared_future<double *> f_x,
-    hpx::shared_future<double *> f_y,
+    double * f_A,
+    double * f_x,
+    double * f_y,
     const std::size_t N);
 
 /**
@@ -165,10 +182,10 @@ ger(sycl::queue queue,
  *
  * @return vector f_r, in-place update
  */
-hpx::shared_future<double *>
+double *
 dot_diag_syrk(sycl::queue queue,
-              hpx::shared_future<double *> f_A,
-              hpx::shared_future<double *> f_r,
+              double * f_A,
+              double * f_r,
               const std::size_t M,
               const std::size_t N);
 
@@ -200,11 +217,11 @@ class DotDiagSyrkKernel
  *
  * @return updated vector f_r, in-place update
  */
-hpx::shared_future<double *>
+double *
 dot_diag_gemm(sycl::queue queue,
-              hpx::shared_future<double *> f_A,
-              hpx::shared_future<double *> f_B,
-              hpx::shared_future<double *> f_r,
+              double * f_A,
+              double * f_B,
+              double * f_r,
               const std::size_t M,
               const std::size_t N);
 
@@ -236,10 +253,10 @@ class DotDiagGemmKernel
  * @param N vector length
  * @return f_a * f_b
  */
-hpx::shared_future<double *>
+double *
 dot(sycl::queue queue,
-    hpx::shared_future<double *> f_a,
-    hpx::shared_future<double *> f_b,
+    double * f_a,
+    double * f_b,
     const std::size_t N);
 
 // HELPER FUNCTIONS ///////////////////////////////////////////////////////////////////////////////////////////////////
