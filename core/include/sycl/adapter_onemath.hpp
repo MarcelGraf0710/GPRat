@@ -43,8 +43,7 @@ potrf(sycl::queue queue, double *f_A, const std::size_t N);
  * @return solution matrix f_X, in-place update of f_B
  */
 double *
-trsm(
-     sycl::queue queue,
+trsm(sycl::queue queue,
      double *f_A,
      double *f_B,
      const std::size_t M,
@@ -108,7 +107,7 @@ gemm(sycl::queue queue,
  * @return solution vector f_x, in-place update of b
  */
 hpx::shared_future<double *>
-trsv(sycl::queue &queue,
+trsv(sycl::queue queue,
      hpx::shared_future<double *> f_A,
      hpx::shared_future<double *> f_b,
      const std::size_t N,
@@ -128,7 +127,7 @@ trsv(sycl::queue &queue,
  * @return updated vector f_y, in-place update
  */
 hpx::shared_future<double *>
-gemv(sycl::queue &queue,
+gemv(sycl::queue queue,
      hpx::shared_future<double *> f_A,
      hpx::shared_future<double *> f_x,
      hpx::shared_future<double *> f_y,
@@ -149,7 +148,7 @@ gemv(sycl::queue &queue,
  * @return vector f_b, in-place update
  */
 hpx::shared_future<double *>
-ger(sycl::queue &queue,
+ger(sycl::queue queue,
     hpx::shared_future<double *> f_A,
     hpx::shared_future<double *> f_x,
     hpx::shared_future<double *> f_y,
@@ -167,7 +166,7 @@ ger(sycl::queue &queue,
  * @return vector f_r, in-place update
  */
 hpx::shared_future<double *>
-dot_diag_syrk(sycl::queue &queue,
+dot_diag_syrk(sycl::queue queue,
               hpx::shared_future<double *> f_A,
               hpx::shared_future<double *> f_r,
               const std::size_t M,
@@ -202,7 +201,7 @@ class DotDiagSyrkKernel
  * @return updated vector f_r, in-place update
  */
 hpx::shared_future<double *>
-dot_diag_gemm(sycl::queue &queue,
+dot_diag_gemm(sycl::queue queue,
               hpx::shared_future<double *> f_A,
               hpx::shared_future<double *> f_B,
               hpx::shared_future<double *> f_r,
@@ -238,7 +237,7 @@ class DotDiagGemmKernel
  * @return f_a * f_b
  */
 hpx::shared_future<double *>
-dot(sycl::queue &queue,
+dot(sycl::queue queue,
     hpx::shared_future<double *> f_a,
     hpx::shared_future<double *> f_b,
     const std::size_t N);

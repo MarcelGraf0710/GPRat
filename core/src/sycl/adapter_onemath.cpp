@@ -209,7 +209,7 @@ gemm(sycl::queue queue,
 // BLAS LEVEL 2 OPERATIONS ////////////////////////////////////////////////////////////////////////////////////////////
 
 hpx::shared_future<double *>
-trsv(sycl::queue &queue,
+trsv(sycl::queue queue,
      hpx::shared_future<double *> f_A,
      hpx::shared_future<double *> f_b,
      const std::size_t N,
@@ -245,7 +245,7 @@ trsv(sycl::queue &queue,
 }
 
 hpx::shared_future<double *>
-gemv(sycl::queue &queue,
+gemv(sycl::queue queue,
      hpx::shared_future<double *> f_A,
      hpx::shared_future<double *> f_x,
      hpx::shared_future<double *> f_y,
@@ -292,7 +292,7 @@ gemv(sycl::queue &queue,
 }
 
 hpx::shared_future<double *>
-ger(sycl::queue &queue,
+ger(sycl::queue queue,
     hpx::shared_future<double *> f_A,
     hpx::shared_future<double *> f_x,
     hpx::shared_future<double *> f_y,
@@ -336,7 +336,7 @@ void DotDiagSyrkKernel::operator()(const sycl::id<1> &id) const
 }
 
 hpx::shared_future<double *>
-dot_diag_syrk(sycl::queue &queue,
+dot_diag_syrk(sycl::queue queue,
               hpx::shared_future<double *> f_A,
               hpx::shared_future<double *> f_r,
               const std::size_t M,
@@ -379,7 +379,7 @@ void DotDiagGemmKernel::operator()(const sycl::id<1> &id) const
 }
 
 hpx::shared_future<double *>
-dot_diag_gemm(sycl::queue &queue,
+dot_diag_gemm(sycl::queue queue,
               hpx::shared_future<double *> f_A,
               hpx::shared_future<double *> f_B,
               hpx::shared_future<double *> f_r,
@@ -410,7 +410,7 @@ dot_diag_gemm(sycl::queue &queue,
 
 hpx::shared_future<double *>
 dot(
-    sycl::queue &queue,
+    sycl::queue queue,
     hpx::shared_future<double *> f_a,
     hpx::shared_future<double *> f_b,
     const std::size_t N

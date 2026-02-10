@@ -37,7 +37,7 @@ void right_looking_cholesky_tiled(
 
         // NOTE: The result is immediately needed by TRSM. Also TRSM may throw
         // an error otherwise.
-        // ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)].get();
+        // ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)];
 
         std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : Entering loop BETA \n";
 
@@ -112,38 +112,34 @@ void forward_solve_tiled(
     gprat::SYCL_DEVICE &sycl_device
 )
 {
-    sycl::queue queue;
-
     for (std::size_t k = 0; k < n_tiles; ++k)
     {
-        queue = sycl_device.next_queue();
+        hpx::shared_future<sycl::queue> f_queue = hpx::make_ready_future(sycl_device.next_queue());
 
         // TRSM: Solve L * x = a
         ft_rhs[k] = hpx::dataflow(
-            [&]() { return trsv( 
-            queue, 
-            ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)], 
+            hpx::unwrapping(&trsv), 
+            f_queue,
+            ft_tiles[k * n_tiles + k], 
             ft_rhs[k], 
             n_tile_size, 
-            oneapi::math::transpose::nontrans
-        ); } );
+            oneapi::math::transpose::nontrans);
 
         for (std::size_t m = k + 1; m < n_tiles; ++m)
         {
-            queue = sycl_device.next_queue();
+            //queue = sycl_device.next_queue();
 
             // GEMV: b = b - A * a
             ft_rhs[m] = hpx::dataflow(
-                [&]() { return gemv(
-                queue,
+                hpx::unwrapping(&gemv),
+                f_queue,
                 ft_tiles[m * n_tiles + k],
                 ft_rhs[k],
                 ft_rhs[m],
                 n_tile_size,
                 n_tile_size,
                 -1,
-                oneapi::math::transpose::nontrans
-            ); } );
+                oneapi::math::transpose::nontrans);
         }
     }
 }
@@ -156,41 +152,40 @@ void backward_solve_tiled(
     gprat::SYCL_DEVICE &sycl_device
 )
 {
-    sycl::queue queue;
+    hpx::shared_future<sycl::queue> f_queue = hpx::make_ready_future(sycl_device.next_queue());
     // NOTE: The loops traverse backwards. Its last comparisons require the
     // usage negative numbers. Therefore they use signed int instead of the
     // unsigned std::size_t.
 
     for (int k = static_cast<int>(n_tiles) - 1; k >= 0; k--)
     {
-        queue = sycl_device.next_queue();
+        //queue = sycl_device.next_queue();
 
         // TRSM: Solve L^T * x = a
         ft_rhs[static_cast<std::size_t>(k)] = hpx::dataflow(
-            [&]() { return trsv(
-            queue, 
-            ft_tiles[static_cast<std::size_t>(static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k))], 
+            hpx::unwrapping(&trsv),
+            f_queue,
+            ft_tiles[k * n_tiles + k], 
             ft_rhs[static_cast<std::size_t>(k)], 
             n_tile_size, 
-            oneapi::math::transpose::trans
-        ); } );
+            oneapi::math::transpose::trans);
 
         for (int m = k - 1; m >= 0; m--)
         {
-            queue = sycl_device.next_queue();
+            //queue = sycl_device.next_queue();
 
             // GEMV: b = b - A^T * a
             ft_rhs[static_cast<std::size_t>(m)] = hpx::dataflow(
-                [&]() { return gemv(
-                queue,
-                ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(m)],
+                hpx::unwrapping(&gemv),
+                f_queue,
+                ft_tiles[k * n_tiles + m],
                 ft_rhs[static_cast<std::size_t>(k)],
                 ft_rhs[static_cast<std::size_t>(m)],
                 n_tile_size,
                 n_tile_size,
                 -1,
                 oneapi::math::transpose::trans
-            ); } );
+            );
         }
     }
 }
@@ -205,47 +200,45 @@ void forward_solve_tiled_matrix(
     gprat::SYCL_DEVICE &sycl_device
 )
 {
-    sycl::queue queue;
-    //
-    // for (std::size_t c = 0; c < m_tiles; ++c)
-    // {
-    //     for (std::size_t k = 0; k < n_tiles; ++k)
-    //     {
-    //         queue = sycl_device.next_queue();
-    //
-    //         // TRSM: solve L * X = A
-    //         ft_rhs[static_cast<std::size_t>(static_cast<std::size_t>(k * m_tiles + c))] = hpx::dataflow(
-    //             [&]() {
-    //             return trsm(
-    //             queue,
-    //             ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)].get(),
-    //             ft_rhs[static_cast<std::size_t>(k * m_tiles + c)].get(),
-    //             n_tile_size,
-    //             m_tile_size,
-    //             oneapi::math::transpose::nontrans,
-    //             oneapi::math::side::left
-    //             ); });
-    //
-    //         for (std::size_t m = k + 1; m < n_tiles; ++m)
-    //         {
-    //             queue = sycl_device.next_queue();
-    //
-    //             // GEMM: C = C - A * B
-    //             ft_rhs[m * m_tiles + c] = hpx::dataflow(
-    //                 [&]() { return gemm(
-    //                 queue,
-    //                 ft_tiles[m * n_tiles + k].get(),
-    //                 ft_rhs[static_cast<std::size_t>(k * m_tiles + c)].get(),
-    //                 ft_rhs[m * m_tiles + c].get(),
-    //                 n_tile_size,
-    //                 m_tile_size,
-    //                 n_tile_size,
-    //                 oneapi::math::transpose::nontrans,
-    //                 oneapi::math::transpose::nontrans
-    //             ); } );
-    //         }
-    //     }
-    // }
+    hpx::shared_future<sycl::queue> f_queue = hpx::make_ready_future(sycl_device.next_queue());
+    
+    for (std::size_t c = 0; c < m_tiles; ++c)
+    {
+        for (std::size_t k = 0; k < n_tiles; ++k)
+        {
+            // queue = sycl_device.next_queue();
+    
+            // TRSM: solve L * X = A
+            ft_rhs[static_cast<std::size_t>(static_cast<std::size_t>(k * m_tiles + c))] = hpx::dataflow(
+                hpx::unwrapping(&trsm),
+                f_queue,
+                ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)],
+                ft_rhs[static_cast<std::size_t>(k * m_tiles + c)],
+                n_tile_size,
+                m_tile_size,
+                oneapi::math::transpose::nontrans,
+                hpx::make_ready_future(oneapi::math::side::left));
+    
+            for (std::size_t m = k + 1; m < n_tiles; ++m)
+            {
+                // queue = sycl_device.next_queue();
+    
+                // GEMM: C = C - A * B
+                ft_rhs[m * m_tiles + c] = hpx::dataflow(
+                    hpx::unwrapping(&gemm),
+                    f_queue,
+                    ft_tiles[m * n_tiles + k],
+                    ft_rhs[static_cast<std::size_t>(k * m_tiles + c)],
+                    ft_rhs[m * m_tiles + c],
+                    n_tile_size,
+                    m_tile_size,
+                    n_tile_size,
+                    oneapi::math::transpose::nontrans,
+                    oneapi::math::transpose::nontrans
+                );
+            }
+        }
+    }
 }
 
 void backward_solve_tiled_matrix(
@@ -258,48 +251,46 @@ void backward_solve_tiled_matrix(
     gprat::SYCL_DEVICE &sycl_device
 )
 {
-    // sycl::queue queue;
-    //
-    // for (std::size_t c = 0; c < m_tiles; ++c)
-    // {
-    //     for (std::size_t k = 0; k < n_tiles; ++k)
-    //     {
-    //         queue = sycl_device.next_queue();
-    //
-    //         // TRSM: solve L^T * X = A
-    //         ft_rhs[static_cast<std::size_t>(k * m_tiles + c)] = hpx::dataflow(
-    //             [&]() {
-    //             return trsm(
-    //             queue,
-    //             ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)].get(),
-    //             ft_rhs[static_cast<std::size_t>(k * m_tiles + c)].get(),
-    //             n_tile_size,
-    //             m_tile_size,
-    //             oneapi::math::transpose::trans,
-    //             oneapi::math::side::left
-    //         ); } );
-    //
-    //         for (std::size_t m = 0; m < k; ++m)
-    //         {
-    //             queue = sycl_device.next_queue();
-    //
-    //             // GEMM: C = C - A^T * B
-    //             ft_rhs[m * m_tiles + c] = hpx::dataflow(
-    //                 [&]() {
-    //                 return gemm(
-    //                 queue,
-    //                 ft_tiles[k * n_tiles + m].get(),
-    //                 ft_rhs[static_cast<std::size_t>(k * m_tiles + c)].get(),
-    //                 ft_rhs[m * m_tiles + c].get(),
-    //                 n_tile_size,
-    //                 m_tile_size,
-    //                 n_tile_size,
-    //                 oneapi::math::transpose::trans,
-    //                 oneapi::math::transpose::nontrans
-    //             ); } );
-    //         }
-    //     }
-    // }
+    hpx::shared_future<sycl::queue> f_queue = hpx::make_ready_future(sycl_device.next_queue());
+    
+    for (std::size_t c = 0; c < m_tiles; ++c)
+    {
+        for (std::size_t k = 0; k < n_tiles; ++k)
+        {
+            // queue = sycl_device.next_queue();
+    
+            // TRSM: solve L^T * X = A
+            ft_rhs[static_cast<std::size_t>(k * m_tiles + c)] = hpx::dataflow(
+                hpx::unwrapping(&trsm),
+                f_queue,
+                ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)],
+                ft_rhs[static_cast<std::size_t>(k * m_tiles + c)],
+                n_tile_size,
+                m_tile_size,
+                oneapi::math::transpose::trans,
+                hpx::make_ready_future(oneapi::math::side::left)
+            );
+    
+            for (std::size_t m = 0; m < k; ++m)
+            {
+                // queue = sycl_device.next_queue();
+    
+                // GEMM: C = C - A^T * B
+                ft_rhs[m * m_tiles + c] = hpx::dataflow(
+                    hpx::unwrapping(&gemm),
+                    f_queue,
+                    ft_tiles[k * n_tiles + m],
+                    ft_rhs[static_cast<std::size_t>(k * m_tiles + c)],
+                    ft_rhs[m * m_tiles + c],
+                    n_tile_size,
+                    m_tile_size,
+                    n_tile_size,
+                    oneapi::math::transpose::trans,
+                    oneapi::math::transpose::nontrans
+                );
+            }
+        }
+    }
 }
 
 void matrix_vector_tiled(
@@ -313,18 +304,17 @@ void matrix_vector_tiled(
     gprat::SYCL_DEVICE &sycl_device
 )
 {
-    sycl::queue queue;
+    hpx::shared_future<sycl::queue> f_queue = hpx::make_ready_future(sycl_device.next_queue());
 
     for (std::size_t k = 0; k < m_tiles; ++k)
     {
         for (std::size_t m = 0; m < n_tiles; ++m)
         {
-            queue = sycl_device.next_queue();
+            // queue = sycl_device.next_queue();
 
             ft_rhs[k] = hpx::dataflow(
-                [&]() {
-                return gemv(
-                queue,
+                hpx::unwrapping(&gemv),
+                f_queue,
                 ft_tiles[k * n_tiles + m],
                 ft_vector[m],
                 ft_rhs[k],
@@ -332,7 +322,7 @@ void matrix_vector_tiled(
                 N_col,
                 1,
                 oneapi::math::transpose::nontrans
-            ); } );
+            );
         }
     }
 }
@@ -347,25 +337,24 @@ void symmetric_matrix_matrix_diagonal_tiled(
     gprat::SYCL_DEVICE &sycl_device
 )
 {
-    sycl::queue queue;
+    hpx::shared_future<sycl::queue> f_queue = hpx::make_ready_future(sycl_device.next_queue());
 
     for (std::size_t i = 0; i < m_tiles; ++i)
     {
         for (std::size_t n = 0; n < n_tiles; ++n)
         {
-            queue = sycl_device.next_queue();
+            // queue = sycl_device.next_queue();
 
             // Compute inner product to obtain diagonal elements of
             // (K_MxN * (K^-1_NxN * K_NxM))
             ft_inter_tiles[i] = hpx::dataflow(
-                [&]() {
-                return dot_diag_syrk(
-                queue,
+                hpx::unwrapping(&dot_diag_syrk),
+                f_queue,
                 ft_tCC_tiles[n * m_tiles + i],
                 ft_inter_tiles[i],
                 n_tile_size,
                 m_tile_size
-            ); } );
+            );
         }
     }
 }
@@ -379,18 +368,17 @@ void compute_gemm_of_invK_y(
     gprat::SYCL_DEVICE &sycl_device
 )
 {
-    sycl::queue queue;
+    hpx::shared_future<sycl::queue> f_queue = hpx::make_ready_future(sycl_device.next_queue());
 
     for (std::size_t i = 0; i < n_tiles; ++i)
     {
         for (std::size_t j = 0; j < n_tiles; ++j)
         {
-            queue = sycl_device.next_queue();
+            // queue = sycl_device.next_queue();
 
             ft_alpha[i] = hpx::dataflow(
-                [&]() {
-                return gemv(
-                queue,
+                hpx::unwrapping(&gemv),
+                f_queue,
                 ft_invK[i * n_tiles + j],
                 ft_y[j],
                 ft_alpha[i],
@@ -398,7 +386,7 @@ void compute_gemm_of_invK_y(
                 n_tile_size,
                 1,
                 oneapi::math::transpose::nontrans
-            ); } );
+            );
         }
     }
 }
@@ -433,7 +421,7 @@ void symmetric_matrix_matrix_tiled(
     gprat::SYCL_DEVICE &sycl_device
 )
 {
-    sycl::queue queue;
+    hpx::shared_future<sycl::queue> f_queue = hpx::make_ready_future(sycl_device.next_queue());
 
     for (std::size_t c = 0; c < m_tiles; ++c)
     {
@@ -441,22 +429,21 @@ void symmetric_matrix_matrix_tiled(
         {
             for (std::size_t m = 0; m < n_tiles; ++m)
             {
-                queue = sycl_device.next_queue();
+                // queue = sycl_device.next_queue();
 
                 // GEMM:  C = C - A^T * B
                 ft_priorK[c * m_tiles + k] = hpx::dataflow(
-                    [&]() {
-                    return gemm(
-                    queue,
-                    ft_tCC_tiles[m * m_tiles + c].get(),
-                    ft_tCC_tiles[m * m_tiles + k].get(),
-                    ft_priorK[c * m_tiles + k].get(),
+                    hpx::unwrapping(&gemm),
+                    f_queue,
+                    ft_tCC_tiles[m * m_tiles + c],
+                    ft_tCC_tiles[m * m_tiles + k],
+                    ft_priorK[c * m_tiles + k],
                     n_tile_size,
                     m_tile_size,
                     m_tile_size,
                     oneapi::math::transpose::trans,
                     oneapi::math::transpose::nontrans
-                ); } );
+                );
             }
         }
     }
@@ -500,16 +487,16 @@ void update_grad_K_tiled_mkl(
     gprat::SYCL_DEVICE &sycl_device
 )
 {
-    sycl::queue queue;
+    hpx::shared_future<sycl::queue> f_queue = hpx::make_ready_future(sycl_device.next_queue());
 
     for (std::size_t i = 0; i < n_tiles; ++i)
     {
         for (std::size_t j = 0; j < n_tiles; ++j)
         {
-            queue = sycl_device.next_queue();
+            // queue = sycl_device.next_queue();
 
             ft_tiles[i * n_tiles + j] =
-                hpx::dataflow([&]() { return ger(queue, ft_tiles[i * n_tiles + j], ft_v1[i], ft_v2[j], n_tile_size); } );
+                hpx::dataflow(hpx::unwrapping(&ger), f_queue, ft_tiles[i * n_tiles + j], ft_v1[i], ft_v2[j], n_tile_size);
         }
     }
 }
