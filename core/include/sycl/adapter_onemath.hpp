@@ -26,7 +26,7 @@
  * @return factorized, lower triangular matrix f_L, in-place update of f_A
  */
 double *
-potrf(sycl::queue &queue, double *f_A, const std::size_t N);
+potrf(sycl::queue queue, double *f_A, const std::size_t N);
 
 /**
  * @brief In-place solve A(^T) * X = B or X * A(^T) = B for lower triangular A
@@ -44,7 +44,7 @@ potrf(sycl::queue &queue, double *f_A, const std::size_t N);
  */
 double *
 trsm(
-     sycl::queue &queue,
+     sycl::queue queue,
      double *f_A,
      double *f_B,
      const std::size_t M,
@@ -63,7 +63,7 @@ trsm(
  * @return updated matrix f_A, inplace update
  */
 double *
-syrk(sycl::queue &queue,
+syrk(sycl::queue queue,
      double *f_A,
      double *f_C,
      const std::size_t N);
@@ -84,7 +84,7 @@ syrk(sycl::queue &queue,
  * @return updated matrix f_C, in-place update
  */
 double *
-gemm(sycl::queue &queue,
+gemm(sycl::queue queue,
      double *f_A,
      double *f_B,
      double *f_C,

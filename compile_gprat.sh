@@ -34,8 +34,10 @@ elif [[ "$2" == "gpu" ]]; then
     # Debug:
     #PRESET=dev-linux-gpu
 elif [[ "$2" == "sycl" ]]; then
+    module use /data/scratch-simcl1/breyerml/Programs/.modulefiles
+    module load icpx
     # Release:
-    PRESET=release-linux-sycl
+    #PRESET=release-linux-sycl
     # Debug:
     PRESET=dev-linux-sycl
 elif [[ "$2" != "cpu" ]]; then
@@ -154,5 +156,7 @@ fi
 cmake --build --preset $PRESET -- VERBOSE=1 -j
 cmake --install build/$PRESET
 
-cd build/$PRESET
-# ctest --output-on-failure --no-tests=ignore -C Release -j 2
+#cd build
+#./$PRESET/test/GPRat_test_output_correctness
+#cd build/$PRESET
+#ctest --output-on-failure --no-tests=ignore -C Release -j 2

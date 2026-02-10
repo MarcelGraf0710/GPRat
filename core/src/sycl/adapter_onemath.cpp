@@ -3,7 +3,7 @@
 // BLAS LEVEL 3 OPERATIONS ////////////////////////////////////////////////////////////////////////////////////////////
 
 double *
-potrf(sycl::queue &queue, double *f_A, const std::size_t N)
+potrf(sycl::queue queue, double *f_A, const std::size_t N)
 {
     std::cout << "[adapter_onemath.cpp] [potrf] : Entering \n";
 
@@ -59,7 +59,7 @@ potrf(sycl::queue &queue, double *f_A, const std::size_t N)
 
 double *
 trsm(
-     sycl::queue &queue,
+     sycl::queue queue,
      double *f_A,
      double *f_B,
      const std::size_t M,
@@ -109,7 +109,7 @@ trsm(
 }
 
 double *
-syrk(sycl::queue &queue,
+syrk(sycl::queue queue,
      double *f_A,
      double *f_C,
      const std::size_t N)
@@ -154,7 +154,7 @@ syrk(sycl::queue &queue,
 }
 
 double *
-gemm(sycl::queue &queue,
+gemm(sycl::queue queue,
      double *f_A,
      double *f_B,
      double *f_C,
