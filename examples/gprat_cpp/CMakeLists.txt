@@ -33,4 +33,4 @@ add_executable(gprat_cpp src/execute.cpp)
 target_compile_features(gprat_cpp PUBLIC cxx_std_17)
 
 # Link the libraries
-target_link_libraries(gprat_cpp PUBLIC GPRat::core HPX::wrap_main)
+target_link_libraries(gprat_cpp PUBLIC GPRat::core)

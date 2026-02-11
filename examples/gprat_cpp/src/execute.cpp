@@ -4,7 +4,7 @@
 #include <fstream>
 #include <iostream>
 
-#include <hpx/hpx_main.hpp>
+// #include <hpx/hpx_main.hpp>
 
 // Test 
 #include <hpx/include/async.hpp>
@@ -193,6 +193,8 @@ namespace gprat::example
         std::vector<bool> trainable
     )
     {
+        utils::start_hpx_runtime(0, nullptr);
+
         target = "sycl";
 
         auto start_init = std::chrono::high_resolution_clock::now();
@@ -209,8 +211,6 @@ namespace gprat::example
 
         auto end_init = std::chrono::high_resolution_clock::now();
         runtimes.init = end_init - start_init;
-
-        // utils::start_hpx_runtime(new_argc, new_argv);
 
         auto start_cholesky = std::chrono::high_resolution_clock::now();
         std::vector<std::vector<double>> cholesky_sycl = gp_sycl.cholesky();
@@ -242,6 +242,8 @@ namespace gprat::example
 
 int main(int argc, char *argv[])
 {
+    utils::start_hpx_runtime(0, nullptr);
+    
     constexpr std::int64_t N = 4;
 
     sycl::queue queue{sycl::default_selector_v};
@@ -300,6 +302,8 @@ int main(int argc, char *argv[])
     sycl::free(a1, queue);
     sycl::free(a2, queue);
     sycl::free(a3, queue);
+
+    utils::stop_hpx_runtime();
 
     return 0;
 
