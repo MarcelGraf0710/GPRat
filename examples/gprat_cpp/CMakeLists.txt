@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
+message(STATUS "YES")
 project(gprat_cpp)
 
 # This project can be built as part of GPRat itself or as a standalone project
@@ -20,8 +21,11 @@ endif()
 # Enables/disables computation with CUDA on test system
 option(GPRAT_WITH_CUDA
        "Enable additional computation with CUDA, cuSolver, cuBLAS" OFF)
+option(GPRAT_WITH_SYCL
+       "Enable additional computation with SYCL, oneMath" OFF)
 # Pass variable to C++ code
 add_compile_definitions(GPRAT_WITH_CUDA=$<BOOL:${GPRAT_WITH_CUDA}>)
+add_compile_definitions(GPRAT_WITH_SYCL=$<BOOL:${GPRAT_WITH_SYCL}>)
 
 # Add the executable
 add_executable(gprat_cpp src/execute.cpp)
@@ -29,4 +33,4 @@ add_executable(gprat_cpp src/execute.cpp)
 target_compile_features(gprat_cpp PUBLIC cxx_std_17)
 
 # Link the libraries
-target_link_libraries(gprat_cpp PUBLIC GPRat::core)
+target_link_libraries(gprat_cpp PUBLIC GPRat::core HPX::wrap_main)

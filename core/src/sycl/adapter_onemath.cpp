@@ -292,19 +292,19 @@ gemv(sycl::queue queue,
 
     queue.wait();
 
-    oneapi::math::blas::column_major::gemv(
-        queue,
-        invert_transpose_operator(is_A_transposed),
-        static_cast<std::int64_t>(N),
-        static_cast<std::int64_t>(M),
-        alpha_value,
-        f_A,
-        static_cast<std::int64_t>(N),
-        f_x,
-        1,
-        beta,
-        f_y,
-        1);
+    // oneapi::math::blas::column_major::gemv(
+    //     queue,
+    //     invert_transpose_operator(is_A_transposed),
+    //     static_cast<std::int64_t>(N),
+    //     static_cast<std::int64_t>(M),
+    //     alpha_value,
+    //     f_A,
+    //     static_cast<std::int64_t>(N),
+    //     f_x,
+    //     1,
+    //     beta,
+    //     f_y,
+    //     1);
 
     queue.wait();
 

@@ -84,17 +84,50 @@ void right_looking_cholesky_tiled(
 
                 std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : GEMM \n";
 
-                // GEMM
-                ft_tiles[m * n_tiles + n] = hpx::dataflow(hpx::unwrapping(&gemm),
-                    f_queue,
-                    ft_tiles[m * n_tiles + k],
-                    ft_tiles[n * n_tiles + k],
-                    ft_tiles[m * n_tiles + n],
-                    n_tile_size,
-                    n_tile_size,
-                    n_tile_size,
+                sycl::queue queue = sycl_device.next_queue();
+
+                auto a1 = ft_tiles[n * n_tiles + k].get();
+                auto a2 = ft_tiles[m * n_tiles + k].get();
+                auto a3 = ft_tiles[m * n_tiles + n].get();
+
+                auto ptype_A = sycl::get_pointer_type(a1, queue.get_context());
+                auto ptype_B = sycl::get_pointer_type(a2, queue.get_context());
+                auto ptype_C = sycl::get_pointer_type(a3, queue.get_context());
+
+                std::cout << "[du weißt schon] [gemm] : Pointer types - A: " 
+                << usm_alloc_to_string(ptype_A) << ", B: " 
+                << usm_alloc_to_string(ptype_B) << ", C: " 
+                << usm_alloc_to_string(ptype_C) << "\n";
+
+                oneapi::math::blas::column_major::gemm(
+                    queue,
+                    oneapi::math::transpose::trans,
                     oneapi::math::transpose::nontrans,
-                    oneapi::math::transpose::trans);
+                    n_tile_size,
+                    n_tile_size,
+                    n_tile_size,
+                    -1.0,
+                    a1,
+                    n_tile_size,
+                    a2,
+                    n_tile_size,
+                    1.0,
+                    a3,
+                    n_tile_size); 
+
+                queue.wait_and_throw();
+
+                // // GEMM
+                // ft_tiles[m * n_tiles + n] = hpx::dataflow(hpx::unwrapping(&gemm),
+                //     f_queue,
+                //     ft_tiles[m * n_tiles + k],
+                //     ft_tiles[n * n_tiles + k],
+                //     ft_tiles[m * n_tiles + n],
+                //     n_tile_size,
+                //     n_tile_size,
+                //     n_tile_size,
+                //     oneapi::math::transpose::nontrans,
+                //     oneapi::math::transpose::trans);
             }
         }
     }
@@ -224,18 +257,18 @@ void forward_solve_tiled_matrix(
                 // queue = sycl_device.next_queue();
     
                 // GEMM: C = C - A * B
-                ft_rhs[m * m_tiles + c] = hpx::dataflow(
-                    hpx::unwrapping(&gemm),
-                    f_queue,
-                    ft_tiles[m * n_tiles + k],
-                    ft_rhs[static_cast<std::size_t>(k * m_tiles + c)],
-                    ft_rhs[m * m_tiles + c],
-                    n_tile_size,
-                    m_tile_size,
-                    n_tile_size,
-                    oneapi::math::transpose::nontrans,
-                    oneapi::math::transpose::nontrans
-                );
+                // ft_rhs[m * m_tiles + c] = hpx::dataflow(
+                //     hpx::unwrapping(&gemm),
+                //     f_queue,
+                //     ft_tiles[m * n_tiles + k],
+                //     ft_rhs[static_cast<std::size_t>(k * m_tiles + c)],
+                //     ft_rhs[m * m_tiles + c],
+                //     n_tile_size,
+                //     m_tile_size,
+                //     n_tile_size,
+                //     oneapi::math::transpose::nontrans,
+                //     oneapi::math::transpose::nontrans
+                // );
             }
         }
     }
@@ -276,18 +309,18 @@ void backward_solve_tiled_matrix(
                 // queue = sycl_device.next_queue();
     
                 // GEMM: C = C - A^T * B
-                ft_rhs[m * m_tiles + c] = hpx::dataflow(
-                    hpx::unwrapping(&gemm),
-                    f_queue,
-                    ft_tiles[k * n_tiles + m],
-                    ft_rhs[static_cast<std::size_t>(k * m_tiles + c)],
-                    ft_rhs[m * m_tiles + c],
-                    n_tile_size,
-                    m_tile_size,
-                    n_tile_size,
-                    oneapi::math::transpose::trans,
-                    oneapi::math::transpose::nontrans
-                );
+                // ft_rhs[m * m_tiles + c] = hpx::dataflow(
+                //     hpx::unwrapping(&gemm),
+                //     f_queue,
+                //     ft_tiles[k * n_tiles + m],
+                //     ft_rhs[static_cast<std::size_t>(k * m_tiles + c)],
+                //     ft_rhs[m * m_tiles + c],
+                //     n_tile_size,
+                //     m_tile_size,
+                //     n_tile_size,
+                //     oneapi::math::transpose::trans,
+                //     oneapi::math::transpose::nontrans
+                // );
             }
         }
     }
@@ -432,18 +465,18 @@ void symmetric_matrix_matrix_tiled(
                 // queue = sycl_device.next_queue();
 
                 // GEMM:  C = C - A^T * B
-                ft_priorK[c * m_tiles + k] = hpx::dataflow(
-                    hpx::unwrapping(&gemm),
-                    f_queue,
-                    ft_tCC_tiles[m * m_tiles + c],
-                    ft_tCC_tiles[m * m_tiles + k],
-                    ft_priorK[c * m_tiles + k],
-                    n_tile_size,
-                    m_tile_size,
-                    m_tile_size,
-                    oneapi::math::transpose::trans,
-                    oneapi::math::transpose::nontrans
-                );
+                // ft_priorK[c * m_tiles + k] = hpx::dataflow(
+                //     hpx::unwrapping(&gemm),
+                //     f_queue,
+                //     ft_tCC_tiles[m * m_tiles + c],
+                //     ft_tCC_tiles[m * m_tiles + k],
+                //     ft_priorK[c * m_tiles + k],
+                //     n_tile_size,
+                //     m_tile_size,
+                //     m_tile_size,
+                //     oneapi::math::transpose::trans,
+                //     oneapi::math::transpose::nontrans
+                // );
             }
         }
     }

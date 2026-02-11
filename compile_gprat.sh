@@ -146,7 +146,7 @@ elif [[ $PRESET == "release-linux-sycl" || $PRESET == "dev-linux-sycl" ]]; then
     -DCMAKE_CXX_COMPILER=$(which icpx) \
 	-DGPRAT_WITH_SYCL=ON \
 	-DGPRAT_ENABLE_TESTS=ON \
-	-DGPRAT_ENABLE_EXAMPLES=OFF \
+	-DGPRAT_ENABLE_EXAMPLES=ON \
 	-DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 fi
 

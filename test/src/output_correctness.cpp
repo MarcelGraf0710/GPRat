@@ -160,7 +160,7 @@ std::string get_data_directory()
 constexpr std::size_t OPT_ITER = 3;
 constexpr std::size_t n_test = 128;
 constexpr std::size_t n_train = 128;
-constexpr std::size_t n_tiles = 16;
+constexpr std::size_t n_tiles = 2;
 constexpr std::size_t n_reg = 8;
 
 // CUDA test settings
@@ -302,6 +302,8 @@ GpratResults run_on_data_sycl(
 
     std::cout << "Setting up Gaussian Process with SYCL" << std::endl;
 
+    // utils::start_hpx_runtime(0, nullptr);
+
     gprat::GP gp_sycl(
         training_input.data,
         training_output.data,
@@ -313,11 +315,9 @@ GpratResults run_on_data_sycl(
         gprat::DeviceParameters{device_id, n_queues}
     ); // FIXME
 
-    utils::start_hpx_runtime(0, nullptr);
-
     GpratResults results_sycl;
 
-    // results_sycl.cholesky = gp_sycl.cholesky();
+    results_sycl.cholesky = gp_sycl.cholesky();
     // // NOTE: optimize and optimize_step are currently not implemented for GPU
 
     // std::cout << "Running predict with uncertainty" << std::endl;
@@ -330,7 +330,7 @@ GpratResults run_on_data_sycl(
     std::cout << "Running predict" << std::endl;
     results_sycl.pred_no_optimize = gp_sycl.predict(test_input.data, test_tiles.first, test_tiles.second);
 
-    utils::stop_hpx_runtime();
+    // utils::stop_hpx_runtime();
 
     return results_sycl;
 }

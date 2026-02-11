@@ -116,6 +116,7 @@ if(GPRAT_WITH_SYCL)
     -fsycl 
     -fsycl-targets=nvptx64-nvidia-cuda 
     -Xsycl-target-backend=nvptx64-nvidia-cuda 
+    -fno-fast-math
     --cuda-gpu-arch=sm_80
   )
   target_compile_options(gprat_core PUBLIC ${SYCL_FLAGS})

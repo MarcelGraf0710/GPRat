@@ -522,6 +522,7 @@ double GP::calculate_loss()
 // cholesky ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 std::vector<std::vector<double>> GP::cholesky()
 {
+    #if !defined GPRAT_WITH_SYCL
     return hpx::async([this]()
     {
         #if GPRAT_WITH_CUDA
@@ -539,8 +540,12 @@ std::vector<std::vector<double>> GP::cholesky()
         {
             return cpu::cholesky(training_input_, kernel_params, n_tiles_, n_tile_size_, n_reg);
         }
-
-        #elif GPRAT_WITH_SYCL
+        #else
+            return cpu::cholesky(training_input_, kernel_params, n_tiles_, n_tile_size_, n_reg);
+        #endif
+    }).get();
+    #else
+    
         if (!target_->is_cpu())
         {
             return sycl_backend::cholesky(
@@ -556,10 +561,7 @@ std::vector<std::vector<double>> GP::cholesky()
             return cpu::cholesky(training_input_, kernel_params, n_tiles_, n_tile_size_, n_reg);
         }
 
-        #else
-            return cpu::cholesky(training_input_, kernel_params, n_tiles_, n_tile_size_, n_reg);
-        #endif
-    }).get();
+    #endif
 }
 
 }  // namespace gprat
