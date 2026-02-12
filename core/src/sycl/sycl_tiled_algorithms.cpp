@@ -17,36 +17,36 @@ void right_looking_cholesky_tiled(
     gprat::SYCL_DEVICE &sycl_device
 )
 {
-    std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : Entering \n";
+    // std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : Entering \n";
 
-    //sycl::queue queue;
+    // //sycl::queue queue;
 
-    std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : Entering loop ALPHA \n";
+    // std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : Entering loop ALPHA \n";
 
     for (std::size_t k = 0; k < n_tiles; ++k)
     {
-        std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : LOOP ALPHA : ITERATION " << k << " \n";
+        // std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : LOOP ALPHA : ITERATION " << k << " \n";
 
         hpx::shared_future<sycl::queue> f_queue = hpx::make_ready_future(sycl_device.next_queue());
 
-        std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : POTRF with index " << static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k) << "\n";
+        // std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : POTRF with index " << static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k) << "\n";
 
         ft_tiles[k * n_tiles + k] = hpx::dataflow(hpx::unwrapping(&potrf), f_queue, ft_tiles[k * n_tiles + k], n_tile_size);
 
-        std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : POTRF submitted, waiting for result \n";
+        // std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : POTRF submitted, waiting for result \n";
 
         // NOTE: The result is immediately needed by TRSM. Also TRSM may throw
         // an error otherwise.
-        // ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)];
+        ft_tiles[static_cast<std::size_t>(k) * n_tiles + static_cast<std::size_t>(k)].get();
 
-        std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : Entering loop BETA \n";
+        // std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : Entering loop BETA \n";
 
         for (std::size_t m = k + 1; m < n_tiles; ++m)
         {
-            std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : LOOP BETA : ITERATION " << m << " \n";
-            //queue = sycl_device.next_queue();
+            // std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : LOOP BETA : ITERATION " << m << " \n";
+            // //queue = sycl_device.next_queue();
 
-            std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : TRSM \n";
+            // std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : TRSM \n";
 
             // TRSM
             ft_tiles[m * n_tiles + k] = hpx::dataflow(hpx::unwrapping(&trsm),
@@ -57,6 +57,8 @@ void right_looking_cholesky_tiled(
                 n_tile_size,
                 oneapi::math::transpose::trans,
                 hpx::make_ready_future(oneapi::math::side::right));
+
+            // ft_tiles[m * n_tiles + k].get();
         }
 
         // std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : Entering loop GAMMA \n";
@@ -66,9 +68,9 @@ void right_looking_cholesky_tiled(
             // std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : LOOP GAMMA : ITERATION " << m << " \n";
             //queue = sycl_device.next_queue();
 
-            std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : SYRK \n";
+            // std::cout << "[sycl_tiled_algorithms.cpp] [right_looking_cholesky_tiled] : SYRK \n";
 
-            // SYRK
+            //SYRK
             ft_tiles[m * n_tiles + m] = hpx::dataflow(hpx::unwrapping(&syrk),
                 f_queue,
                 ft_tiles[m * n_tiles + k],
@@ -86,48 +88,52 @@ void right_looking_cholesky_tiled(
 
                 sycl::queue queue = sycl_device.next_queue();
 
-                auto a1 = ft_tiles[n * n_tiles + k].get();
-                auto a2 = ft_tiles[m * n_tiles + k].get();
-                auto a3 = ft_tiles[m * n_tiles + n].get();
+                // auto a1 = ft_tiles[n * n_tiles + k].get();
+                // auto a2 = ft_tiles[m * n_tiles + k].get();
+                // auto a3 = ft_tiles[m * n_tiles + n].get();
 
-                auto ptype_A = sycl::get_pointer_type(a1, queue.get_context());
-                auto ptype_B = sycl::get_pointer_type(a2, queue.get_context());
-                auto ptype_C = sycl::get_pointer_type(a3, queue.get_context());
+                // // auto ptype_A = sycl::get_pointer_type(a1, queue.get_context());
+                // // auto ptype_B = sycl::get_pointer_type(a2, queue.get_context());
+                // // auto ptype_C = sycl::get_pointer_type(a3, queue.get_context());
 
-                std::cout << "[du weißt schon] [gemm] : Pointer types - A: " 
-                << usm_alloc_to_string(ptype_A) << ", B: " 
-                << usm_alloc_to_string(ptype_B) << ", C: " 
-                << usm_alloc_to_string(ptype_C) << "\n";
+                // // std::cout << "[du weißt schon] [gemm] : Pointer types - A: " 
+                // // << usm_alloc_to_string(ptype_A) << ", B: " 
+                // // << usm_alloc_to_string(ptype_B) << ", C: " 
+                // // << usm_alloc_to_string(ptype_C) << "\n";
 
-                oneapi::math::blas::column_major::gemm(
-                    queue,
-                    oneapi::math::transpose::trans,
-                    oneapi::math::transpose::nontrans,
-                    n_tile_size,
-                    n_tile_size,
-                    n_tile_size,
-                    -1.0,
-                    a1,
-                    n_tile_size,
-                    a2,
-                    n_tile_size,
-                    1.0,
-                    a3,
-                    n_tile_size); 
+                // // queue.wait_and_throw();
+                // sycl::queue myq =f_queue.get();
+                // // myq.wait();
 
-                queue.wait_and_throw();
-
-                // // GEMM
-                // ft_tiles[m * n_tiles + n] = hpx::dataflow(hpx::unwrapping(&gemm),
-                //     f_queue,
-                //     ft_tiles[m * n_tiles + k],
-                //     ft_tiles[n * n_tiles + k],
-                //     ft_tiles[m * n_tiles + n],
-                //     n_tile_size,
-                //     n_tile_size,
-                //     n_tile_size,
+                // oneapi::math::blas::column_major::gemm(
+                //     myq,
+                //     oneapi::math::transpose::trans,
                 //     oneapi::math::transpose::nontrans,
-                //     oneapi::math::transpose::trans);
+                //     n_tile_size,
+                //     n_tile_size,
+                //     n_tile_size,
+                //     -1.0,
+                //     a1,
+                //     n_tile_size,
+                //     a2,
+                //     n_tile_size,
+                //     1.0,
+                //     a3,
+                //     n_tile_size); 
+
+                // myq.wait_and_throw();
+
+                // GEMM
+                ft_tiles[m * n_tiles + n] = hpx::dataflow(hpx::unwrapping(&gemm),
+                    f_queue,
+                    ft_tiles[m * n_tiles + k],
+                    ft_tiles[n * n_tiles + k],
+                    ft_tiles[m * n_tiles + n],
+                    n_tile_size,
+                    n_tile_size,
+                    n_tile_size,
+                    oneapi::math::transpose::nontrans,
+                    oneapi::math::transpose::trans);
             }
         }
     }

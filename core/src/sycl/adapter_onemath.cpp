@@ -153,19 +153,19 @@ syrk(sycl::queue queue,
 
 double *
 gemm(sycl::queue queue,
-     double *f_A,
-     double *f_B,
-     double *f_C,
+     double *f_A, // a2
+     double *f_B, // a1
+     double *f_C, // a3
      const std::size_t M,
      const std::size_t N,
      const std::size_t K,
-     const oneapi::math::transpose is_A_transposed,
-     const oneapi::math::transpose is_B_transposed)
+     const oneapi::math::transpose is_A_transposed, //nontrans
+     const oneapi::math::transpose is_B_transposed) // trans
 {
-    std::cout << "[adapter_onemath.cpp] [gemm] : Entering \n";
+    // std::cout << "[adapter_onemath.cpp] [gemm] : Entering \n";
 
-    const double alpha = -1.0;
-    const double beta = 1.0;
+    // const double alpha = -1.0;
+    // const double beta = 1.0;
 
     // row-major GEMM
     // C = alpha * op(A) * op(B) + beta * C
@@ -178,16 +178,16 @@ gemm(sycl::queue queue,
     //   = op(B) * op(A) - C
     // for inverted ordering of matrices A, B
 
-    auto ptype_A = sycl::get_pointer_type(f_A, queue.get_context());
-    auto ptype_B = sycl::get_pointer_type(f_B, queue.get_context());
-    auto ptype_C = sycl::get_pointer_type(f_C, queue.get_context());
+    // auto ptype_A = sycl::get_pointer_type(f_A, queue.get_context());
+    // auto ptype_B = sycl::get_pointer_type(f_B, queue.get_context());
+    // auto ptype_C = sycl::get_pointer_type(f_C, queue.get_context());
 
-    std::cout << "[adapter_onemath.cpp] [gemm] : Pointer types - A: " 
-    << usm_alloc_to_string(ptype_A) << ", B: " 
-    << usm_alloc_to_string(ptype_B) << ", C: " 
-    << usm_alloc_to_string(ptype_C) << "\n";
+    // std::cout << "[adapter_onemath.cpp] [gemm] : Pointer types - A: " 
+    // << usm_alloc_to_string(ptype_A) << ", B: " 
+    // << usm_alloc_to_string(ptype_B) << ", C: " 
+    // << usm_alloc_to_string(ptype_C) << "\n";
 
-    queue.wait();
+    // queue.wait();
 
     oneapi::math::blas::column_major::gemm(
         queue,
@@ -196,18 +196,18 @@ gemm(sycl::queue queue,
         static_cast<std::int64_t>(N),
         static_cast<std::int64_t>(M),
         static_cast<std::int64_t>(K),
-        alpha,
-        f_B,
+        -1.0,
+        f_B, // a1
         static_cast<std::int64_t>(N),
-        f_A,
+        f_A, // a2
         static_cast<std::int64_t>(K),
-        beta,
-        f_C,
+        1.0,
+        f_C, // a3
         static_cast<std::int64_t>(N)); 
 
-    queue.wait();
+    // queue.wait();
 
-    std::cout << "[adapter_onemath.cpp] [gemm] : Leaving \n";
+    // std::cout << "[adapter_onemath.cpp] [gemm] : Leaving \n";
 
     return f_C;
 }
