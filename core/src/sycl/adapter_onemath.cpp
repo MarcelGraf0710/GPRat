@@ -151,16 +151,77 @@ syrk(sycl::queue queue,
     return f_C;
 }
 
+// double *
+// gemm(sycl::queue queue,
+//      double *f_A, // a2
+//      double *f_B, // a1
+//      double *f_C, // a3
+//      const std::size_t M,
+//      const std::size_t N,
+//      const std::size_t K,
+//      const oneapi::math::transpose is_A_transposed, //nontrans
+//      const oneapi::math::transpose is_B_transposed) // trans
+// {
+//     // std::cout << "[adapter_onemath.cpp] [gemm] : Entering \n";
+
+//     // const double alpha = -1.0;
+//     // const double beta = 1.0;
+
+//     // row-major GEMM
+//     // C = alpha * op(A) * op(B) + beta * C
+//     //   = op(A) * op(B) - C
+//     // for op(A): transpose_A
+//     // for op(B): transpose_B
+
+//     // column-major cuBLAS GEMM for row-major stored A, B, C
+//     // C = alpha * op(B) * op(A) + beta * C
+//     //   = op(B) * op(A) - C
+//     // for inverted ordering of matrices A, B
+
+//     // auto ptype_A = sycl::get_pointer_type(f_A, queue.get_context());
+//     // auto ptype_B = sycl::get_pointer_type(f_B, queue.get_context());
+//     // auto ptype_C = sycl::get_pointer_type(f_C, queue.get_context());
+
+//     // std::cout << "[adapter_onemath.cpp] [gemm] : Pointer types - A: " 
+//     // << usm_alloc_to_string(ptype_A) << ", B: " 
+//     // << usm_alloc_to_string(ptype_B) << ", C: " 
+//     // << usm_alloc_to_string(ptype_C) << "\n";
+
+//     // queue.wait();
+
+//     oneapi::math::blas::column_major::gemm(
+//         queue,
+//         is_B_transposed,
+//         is_A_transposed,
+//         static_cast<std::int64_t>(N),
+//         static_cast<std::int64_t>(M),
+//         static_cast<std::int64_t>(K),
+//         -1.0,
+//         f_B, // a1
+//         static_cast<std::int64_t>(N),
+//         f_A, // a2
+//         static_cast<std::int64_t>(K),
+//         1.0,
+//         f_C, // a3
+//         static_cast<std::int64_t>(N)); 
+
+//     // queue.wait();
+
+//     // std::cout << "[adapter_onemath.cpp] [gemm] : Leaving \n";
+
+//     return f_C;
+// }
+
+
 double *
-gemm(sycl::queue queue,
-     double *f_A, // a2
-     double *f_B, // a1
-     double *f_C, // a3
+gemm(double *f_A,
+     double *f_B,
+     double *f_C,
      const std::size_t M,
      const std::size_t N,
      const std::size_t K,
-     const oneapi::math::transpose is_A_transposed, //nontrans
-     const oneapi::math::transpose is_B_transposed) // trans
+     const oneapi::math::transpose is_A_transposed, 
+     const oneapi::math::transpose is_B_transposed)
 {
     // std::cout << "[adapter_onemath.cpp] [gemm] : Entering \n";
 
@@ -189,6 +250,8 @@ gemm(sycl::queue queue,
 
     // queue.wait();
 
+    sycl::queue queue(sycl::gpu_selector_v);
+
     oneapi::math::blas::column_major::gemm(
         queue,
         is_B_transposed,
@@ -205,12 +268,14 @@ gemm(sycl::queue queue,
         f_C, // a3
         static_cast<std::int64_t>(N)); 
 
-    // queue.wait();
+    queue.wait();
 
     // std::cout << "[adapter_onemath.cpp] [gemm] : Leaving \n";
 
     return f_C;
 }
+
+
 
 // BLAS LEVEL 2 OPERATIONS ////////////////////////////////////////////////////////////////////////////////////////////
 

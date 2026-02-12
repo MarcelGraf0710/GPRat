@@ -99,9 +99,19 @@ syrk(sycl::queue queue,
  *
  * @return updated matrix f_C, in-place update
  */
+// double *
+// gemm(sycl::queue queue,
+//      double *f_A,
+//      double *f_B,
+//      double *f_C,
+//      const std::size_t M,
+//      const std::size_t N,
+//      const std::size_t K,
+//      const oneapi::math::transpose is_A_transposed,
+//      const oneapi::math::transpose is_B_transposed);
+
 double *
-gemm(sycl::queue queue,
-     double *f_A,
+gemm(double *f_A,
      double *f_B,
      double *f_C,
      const std::size_t M,
