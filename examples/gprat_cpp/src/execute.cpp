@@ -244,176 +244,178 @@ int main(int argc, char *argv[])
 {
     utils::start_hpx_runtime(0, nullptr);
     
-    constexpr std::int64_t N = 4;
+    // constexpr std::int64_t N = 4;
 
-    sycl::queue queue{sycl::default_selector_v};
+    // sycl::queue queue{sycl::default_selector_v};
 
-    std::cout << "Running on: "
-              << queue.get_device().get_info<sycl::info::device::name>()
-              << "\n";
+    // std::cout << "Running on: "
+    //           << queue.get_device().get_info<sycl::info::device::name>()
+    //           << "\n";
 
-    // USM shared allocations
-    double* a1 = sycl::malloc_shared<double>(N * N, queue);
-    double* a2 = sycl::malloc_shared<double>(N * N, queue);
-    double* a3 = sycl::malloc_shared<double>(N * N, queue);
+    // // USM shared allocations
+    // double* a1 = sycl::malloc_shared<double>(N * N, queue);
+    // double* a2 = sycl::malloc_shared<double>(N * N, queue);
+    // double* a3 = sycl::malloc_shared<double>(N * N, queue);
 
-    // Initialize matrices (column-major)
-    for (std::int64_t j = 0; j < N; ++j) {
-        for (std::int64_t i = 0; i < N; ++i) {
-            a1[i + j * N] = (i == j) ? 1.0 : 0.0; // Identity
-            a2[i + j * N] = 1.0;                 // Ones
-            a3[i + j * N] = 0.0;                 // Zero
+    // // Initialize matrices (column-major)
+    // for (std::int64_t j = 0; j < N; ++j) {
+    //     for (std::int64_t i = 0; i < N; ++i) {
+    //         a1[i + j * N] = (i == j) ? 1.0 : 0.0; // Identity
+    //         a2[i + j * N] = 1.0;                 // Ones
+    //         a3[i + j * N] = 0.0;                 // Zero
+    //     }
+    // }
+
+    // // --- HPX async GEMM directly in main ---
+    // auto fut = hpx::async([&]() -> double* {
+
+    //     oneapi::math::blas::column_major::gemm(
+    //         queue,
+    //         oneapi::math::transpose::trans,
+    //         oneapi::math::transpose::nontrans,
+    //         N, N, N,
+    //         -1.0,
+    //         a1, N,
+    //         a2, N,
+    //         1.0,
+    //         a3, N
+    //     );
+
+    //     // REQUIRED: synchronize SYCL with HPX
+    //     queue.wait_and_throw();
+
+    //     return a3;
+    // });
+
+    // // Immediate get, as requested
+    // double* C = fut.get();
+
+    // // Print result
+    // std::cout << "Result matrix C:\n";
+    // for (std::int64_t i = 0; i < N; ++i) {
+    //     for (std::int64_t j = 0; j < N; ++j) {
+    //         std::cout << C[i + j * N] << " ";
+    //     }
+    //     std::cout << "\n";
+    // }
+
+    // sycl::free(a1, queue);
+    // sycl::free(a2, queue);
+    // sycl::free(a3, queue);
+
+    // utils::stop_hpx_runtime();
+
+    // return 0;
+
+
+    std::cout << "Hello from the GPRat C++ example!" << std::endl;
+    std::string train_path = "../../../../data/data_1024/training_input.txt";
+    std::string out_path = "../../../../data/data_1024/training_output.txt";
+    std::string test_path = "../../../../data/data_1024/test_input.txt";
+
+    bool use_gpu =
+        utils::compiled_with_cuda() && gprat::gpu_count() > 0 && argc > 1 && std::strcmp(argv[1], "--use_gpu") == 0;
+
+    std::cout << "gpu_count: " << gprat::gpu_count() << std::endl;
+    std::cout << "argc: " << argc << std::endl;
+
+    bool use_sycl =
+        utils::compiled_with_sycl() && gprat::gpu_count() > 0 && argc > 1 && std::strcmp(argv[1], "--use_sycl") == 0;
+
+    for (std::size_t core = 2; core <= gprat::example::N_CORES; core = core * 2)
+    {
+        // Create new argc and argv to include the --hpx:threads argument
+        std::vector<std::string> args(argv, argv + argc);
+        if (use_gpu) { args.erase(args.begin() + 1); }
+        args.push_back("--hpx:threads=" + std::to_string(core));
+
+        // Convert the arguments to char* array
+        std::vector<char *> cstr_args;
+        for (auto &arg : args) { cstr_args.push_back(const_cast<char *>(arg.c_str())); }
+
+        int new_argc = static_cast<int>(cstr_args.size());
+        char **new_argv = cstr_args.data();
+
+        for (std::size_t start = gprat::example::START; start <= gprat::example::END; start = start * gprat::example::STEP)
+        {
+            int n_train = static_cast<int>(start);
+
+            for (std::size_t l = 0; l < gprat::example::LOOP; l++)
+            {
+                int tile_size = utils::compute_train_tile_size(n_train, gprat::example::n_tiles);
+                auto result = utils::compute_test_tiles(gprat::example::n_test, gprat::example::n_tiles, tile_size);
+
+                gprat::GP_data training_input(train_path, n_train, gprat::example::n_reg);
+                gprat::GP_data training_output(out_path, n_train, gprat::example::n_reg);
+                gprat::GP_data test_input(test_path, gprat::example::n_test, gprat::example::n_reg);
+
+                gprat::example::Runtimes runtimes;
+                std::vector<bool> trainable = { true, true, true };
+                std::string target;
+
+                auto start_total = std::chrono::high_resolution_clock::now();
+
+                if (!use_gpu && !use_sycl)
+                {
+                    std::cout << "Running CPU example with " << core << " cores" << std::endl;
+                    gprat::example::example_cpu(
+                        new_argc,
+                        new_argv,
+                        runtimes,
+                        target,
+                        result,
+                        training_input,
+                        training_output,
+                        test_input,
+                        tile_size,
+                        trainable 
+                    );
+                }
+                else if (use_gpu)
+                {
+                    std::cout << "Running CUDA GPU example with " << core << " cores" << std::endl;
+                    gprat::example::example_cuda_gpu(
+                        new_argc,
+                        new_argv,
+                        runtimes,
+                        target,
+                        result,
+                        training_input,
+                        training_output,
+                        test_input,
+                        tile_size,
+                        trainable 
+                    );
+                }
+                else if(use_sycl)
+                {
+                    std::cout << "Running SYCL example with device_id: " << gprat::example::device_id << " and n_queues: " << gprat::example::n_queues << std::endl;
+                    gprat::example::example_sycl(
+                        new_argc,
+                        new_argv,
+                        runtimes,
+                        target,
+                        result,
+                        training_input,
+                        training_output,
+                        test_input,
+                        tile_size,
+                        trainable 
+                    );   
+                }
+
+                // Stop the HPX runtime
+                // utils::stop_hpx_runtime();
+
+                auto end_total = std::chrono::high_resolution_clock::now();
+                auto total_time = end_total - start_total;
+
+                gprat::example::append_to_output_file(target, n_train, core, l, runtimes, total_time);
+            }
         }
     }
-
-    // --- HPX async GEMM directly in main ---
-    auto fut = hpx::async([&]() -> double* {
-
-        oneapi::math::blas::column_major::gemm(
-            queue,
-            oneapi::math::transpose::trans,
-            oneapi::math::transpose::nontrans,
-            N, N, N,
-            -1.0,
-            a1, N,
-            a2, N,
-            1.0,
-            a3, N
-        );
-
-        // REQUIRED: synchronize SYCL with HPX
-        queue.wait_and_throw();
-
-        return a3;
-    });
-
-    // Immediate get, as requested
-    double* C = fut.get();
-
-    // Print result
-    std::cout << "Result matrix C:\n";
-    for (std::int64_t i = 0; i < N; ++i) {
-        for (std::int64_t j = 0; j < N; ++j) {
-            std::cout << C[i + j * N] << " ";
-        }
-        std::cout << "\n";
-    }
-
-    sycl::free(a1, queue);
-    sycl::free(a2, queue);
-    sycl::free(a3, queue);
 
     utils::stop_hpx_runtime();
 
     return 0;
-
-
-    // std::cout << "Hello from the GPRat C++ example!" << std::endl;
-    // std::string train_path = "../../../../data/data_1024/training_input.txt";
-    // std::string out_path = "../../../../data/data_1024/training_output.txt";
-    // std::string test_path = "../../../../data/data_1024/test_input.txt";
-
-    // bool use_gpu =
-    //     utils::compiled_with_cuda() && gprat::gpu_count() > 0 && argc > 1 && std::strcmp(argv[1], "--use_gpu") == 0;
-
-    // std::cout << "gpu_count: " << gprat::gpu_count() << std::endl;
-    // std::cout << "argc: " << argc << std::endl;
-
-    // bool use_sycl =
-    //     utils::compiled_with_sycl() && gprat::gpu_count() > 0 && argc > 1 && std::strcmp(argv[1], "--use_sycl") == 0;
-
-    // for (std::size_t core = 2; core <= gprat::example::N_CORES; core = core * 2)
-    // {
-    //     // Create new argc and argv to include the --hpx:threads argument
-    //     std::vector<std::string> args(argv, argv + argc);
-    //     if (use_gpu) { args.erase(args.begin() + 1); }
-    //     args.push_back("--hpx:threads=" + std::to_string(core));
-
-    //     // Convert the arguments to char* array
-    //     std::vector<char *> cstr_args;
-    //     for (auto &arg : args) { cstr_args.push_back(const_cast<char *>(arg.c_str())); }
-
-    //     int new_argc = static_cast<int>(cstr_args.size());
-    //     char **new_argv = cstr_args.data();
-
-    //     for (std::size_t start = gprat::example::START; start <= gprat::example::END; start = start * gprat::example::STEP)
-    //     {
-    //         int n_train = static_cast<int>(start);
-
-    //         for (std::size_t l = 0; l < gprat::example::LOOP; l++)
-    //         {
-    //             int tile_size = utils::compute_train_tile_size(n_train, gprat::example::n_tiles);
-    //             auto result = utils::compute_test_tiles(gprat::example::n_test, gprat::example::n_tiles, tile_size);
-
-    //             gprat::GP_data training_input(train_path, n_train, gprat::example::n_reg);
-    //             gprat::GP_data training_output(out_path, n_train, gprat::example::n_reg);
-    //             gprat::GP_data test_input(test_path, gprat::example::n_test, gprat::example::n_reg);
-
-    //             gprat::example::Runtimes runtimes;
-    //             std::vector<bool> trainable = { true, true, true };
-    //             std::string target;
-
-    //             auto start_total = std::chrono::high_resolution_clock::now();
-
-    //             if (!use_gpu && !use_sycl)
-    //             {
-    //                 std::cout << "Running CPU example with " << core << " cores" << std::endl;
-    //                 gprat::example::example_cpu(
-    //                     new_argc,
-    //                     new_argv,
-    //                     runtimes,
-    //                     target,
-    //                     result,
-    //                     training_input,
-    //                     training_output,
-    //                     test_input,
-    //                     tile_size,
-    //                     trainable 
-    //                 );
-    //             }
-    //             else if (use_gpu)
-    //             {
-    //                 std::cout << "Running CUDA GPU example with " << core << " cores" << std::endl;
-    //                 gprat::example::example_cuda_gpu(
-    //                     new_argc,
-    //                     new_argv,
-    //                     runtimes,
-    //                     target,
-    //                     result,
-    //                     training_input,
-    //                     training_output,
-    //                     test_input,
-    //                     tile_size,
-    //                     trainable 
-    //                 );
-    //             }
-    //             else if(use_sycl)
-    //             {
-    //                 std::cout << "Running SYCL example with device_id: " << gprat::example::device_id << " and n_queues: " << gprat::example::n_queues << std::endl;
-    //                 gprat::example::example_sycl(
-    //                     new_argc,
-    //                     new_argv,
-    //                     runtimes,
-    //                     target,
-    //                     result,
-    //                     training_input,
-    //                     training_output,
-    //                     test_input,
-    //                     tile_size,
-    //                     trainable 
-    //                 );   
-    //             }
-
-    //             // Stop the HPX runtime
-    //             // utils::stop_hpx_runtime();
-
-    //             auto end_total = std::chrono::high_resolution_clock::now();
-    //             auto total_time = end_total - start_total;
-
-    //             gprat::example::append_to_output_file(target, n_train, core, l, runtimes, total_time);
-    //         }
-    //     }
-    // }
-
-    // return 0;
 }
