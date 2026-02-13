@@ -93,7 +93,7 @@ namespace gprat::example
         runtimes.init = end_init - start_init;
 
         // Initialize HPX with the new arguments, don't run hpx_main
-        // utils::start_hpx_runtime(new_argc, new_argv);
+        utils::start_hpx_runtime(new_argc, new_argv);
 
         auto start_cholesky = std::chrono::high_resolution_clock::now();
         std::vector<std::vector<double>> cholesky_cpu = gp_cpu.cholesky();
@@ -152,7 +152,7 @@ namespace gprat::example
         auto end_init = std::chrono::high_resolution_clock::now();
         runtimes.init = end_init - start_init;
 
-        // utils::start_hpx_runtime(new_argc, new_argv);
+        utils::start_hpx_runtime(new_argc, new_argv);
 
         auto start_cholesky = std::chrono::high_resolution_clock::now();
         std::vector<std::vector<double>> cholesky_gpu = gp_gpu.cholesky();
@@ -193,7 +193,7 @@ namespace gprat::example
         std::vector<bool> trainable
     )
     {
-        utils::start_hpx_runtime(0, nullptr);
+        utils::start_hpx_runtime(new_argc, new_argv);
 
         target = "sycl";
 
@@ -217,25 +217,25 @@ namespace gprat::example
         auto end_cholesky = std::chrono::high_resolution_clock::now();
         runtimes.cholesky = end_cholesky - start_cholesky;
 
-        // // NOTE: optimization is not implemented for GPU
-        // runtimes.opt = std::chrono::seconds(-1);
+        // NOTE: optimization is not implemented for GPU
+        runtimes.opt = std::chrono::seconds(-1);
 
-        // auto start_pred_uncer = std::chrono::high_resolution_clock::now();
-        // std::vector<std::vector<double>> sum_sycl =
-        //     gp_sycl.predict_with_uncertainty(test_input.data, result.first, result.second);
-        // auto end_pred_uncer = std::chrono::high_resolution_clock::now();
-        // runtimes.pred_uncer = end_pred_uncer - start_pred_uncer;
+        auto start_pred_uncer = std::chrono::high_resolution_clock::now();
+        std::vector<std::vector<double>> sum_sycl =
+            gp_sycl.predict_with_uncertainty(test_input.data, result.first, result.second);
+        auto end_pred_uncer = std::chrono::high_resolution_clock::now();
+        runtimes.pred_uncer = end_pred_uncer - start_pred_uncer;
 
-        // auto start_pred_full_cov = std::chrono::high_resolution_clock::now();
-        // std::vector<std::vector<double>> full_sycl =
-        //     gp_sycl.predict_with_full_cov(test_input.data, result.first, result.second);
-        // auto end_pred_full_cov = std::chrono::high_resolution_clock::now();
-        // runtimes.pred_full_cov = end_pred_full_cov - start_pred_full_cov;
+        auto start_pred_full_cov = std::chrono::high_resolution_clock::now();
+        std::vector<std::vector<double>> full_sycl =
+            gp_sycl.predict_with_full_cov(test_input.data, result.first, result.second);
+        auto end_pred_full_cov = std::chrono::high_resolution_clock::now();
+        runtimes.pred_full_cov = end_pred_full_cov - start_pred_full_cov;
 
-        // auto start_pred = std::chrono::high_resolution_clock::now();
-        // std::vector<double> pred_sycl = gp_sycl.predict(test_input.data, result.first, result.second);
-        // auto end_pred = std::chrono::high_resolution_clock::now();
-        // runtimes.pred = end_pred - start_pred;
+        auto start_pred = std::chrono::high_resolution_clock::now();
+        std::vector<double> pred_sycl = gp_sycl.predict(test_input.data, result.first, result.second);
+        auto end_pred = std::chrono::high_resolution_clock::now();
+        runtimes.pred = end_pred - start_pred;
     }
 
 } // ! namespace gprat::example
@@ -415,7 +415,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    utils::stop_hpx_runtime();
+    // utils::stop_hpx_runtime();
 
     return 0;
 }

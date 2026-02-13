@@ -1,17 +1,14 @@
-#ifndef ADAPTER_ONEMATH
-#define ADAPTER_ONEMATH
+#ifndef ADAPTER_ONEMATH_H
+#define ADAPTER_ONEMATH_H
 
 // GRPat
 #include <target.hpp>
-
 #include "sycl_utils.hpp"
-
-// HPX
-#include <hpx/future.hpp>
 
 // SYCL
 #include <sycl/sycl.hpp>
 
+// oneMath
 #include <oneapi/math.hpp>
 
 inline const char* usm_alloc_to_string(sycl::usm::alloc a)
@@ -99,6 +96,16 @@ syrk(sycl::queue queue,
  *
  * @return updated matrix f_C, in-place update
  */
+double *
+gemm(double *f_A,
+     double *f_B,
+     double *f_C,
+     const std::size_t M,
+     const std::size_t N,
+     const std::size_t K,
+     const oneapi::math::transpose is_A_transposed,
+     const oneapi::math::transpose is_B_transposed);
+
 // double *
 // gemm(sycl::queue queue,
 //      double *f_A,
@@ -109,16 +116,6 @@ syrk(sycl::queue queue,
 //      const std::size_t K,
 //      const oneapi::math::transpose is_A_transposed,
 //      const oneapi::math::transpose is_B_transposed);
-
-double *
-gemm(double *f_A,
-     double *f_B,
-     double *f_C,
-     const std::size_t M,
-     const std::size_t N,
-     const std::size_t K,
-     const oneapi::math::transpose is_A_transposed,
-     const oneapi::math::transpose is_B_transposed);
 
 // BLAS LEVEL 2 OPERATIONS ////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -154,14 +151,23 @@ trsv(sycl::queue queue,
  * @return updated vector f_y, in-place update
  */
 double *
-gemv(sycl::queue queue,
-     double * f_A,
-     double * f_x,
-     double * f_y,
+gemv(double *f_A,
+     double *f_x,
+     double *f_y,
      const std::size_t M,
      const std::size_t N,
      const double alpha,
      const oneapi::math::transpose is_A_transposed);
+
+// double *
+// gemv(sycl::queue queue,
+//      double * f_A,
+//      double * f_x,
+//      double * f_y,
+//      const std::size_t M,
+//      const std::size_t N,
+//      const double alpha,
+//      const oneapi::math::transpose is_A_transposed);
 
 /**
  * @brief General matrix rank-1 update: A = A - x*y^T
@@ -283,4 +289,4 @@ inline oneapi::math::side invert_side_operator(oneapi::math::side op)
           oneapi::math::side::right : oneapi::math::side::left; 
 }
 
-#endif  // end of ADAPTER_ONEMATH
+#endif // end of ADAPTER_ONEMATH_H

@@ -1,18 +1,21 @@
+// GPRat
+#include "target.hpp"
 #include "sycl/sycl_gp_uncertainty.hpp"
 #include "sycl/sycl_utils.hpp"
-#include "target.hpp"
+
+// oneMath
+#include <oneapi/math.hpp>
 
 namespace gprat::sycl_backend
 {
 
-hpx::shared_future<double *> diag_posterior(
-    const hpx::shared_future<double *> A, 
-    const hpx::shared_future<double *> B, 
-    std::size_t M, 
-    gprat::SYCL_DEVICE &sycl_device
+double *diag_posterior(
+    double *A, 
+    double *B, 
+    std::size_t M
 )
 {
-    sycl::queue queue = sycl_device.next_queue();
+    sycl::queue queue(sycl::gpu_selector_v);
 
     double *tile = sycl::malloc_device<gprat::sycl_backend::real_t>(M, queue);
 
@@ -24,10 +27,10 @@ hpx::shared_future<double *> diag_posterior(
         1,
         static_cast<int64_t>(M),
         1.0,
-        A.get(),
+        A,
         1,
         -1.0,
-        B.get(),
+        B,
         1,
         tile,
         1
@@ -35,16 +38,16 @@ hpx::shared_future<double *> diag_posterior(
 
     queue.wait();
 
-    return hpx::make_ready_future(tile);
+    return tile;
 }
 
-hpx::shared_future<double *> diag_tile(
-    const hpx::shared_future<double *> A, 
-    std::size_t M, 
-    gprat::SYCL_DEVICE &sycl_device
+double *diag_tile(
+    double *A, 
+    std::size_t M
 )
 {
-    sycl::queue queue = sycl_device.next_queue();
+    //sycl::queue queue = sycl_device.next_queue();
+    sycl::queue queue(sycl::gpu_selector_v);
 
     double *diag_tile = sycl::malloc_device<gprat::sycl_backend::real_t>(M, queue);
 
@@ -54,7 +57,7 @@ hpx::shared_future<double *> diag_tile(
         1,                                  
         static_cast<int64_t>(M),                                  
         1.0,
-        A.get(),
+        A,
         static_cast<int64_t>(M) + 1,
         diag_tile,
         1 
@@ -62,7 +65,7 @@ hpx::shared_future<double *> diag_tile(
 
     queue.wait();
 
-    return hpx::make_ready_future(diag_tile);
+    return diag_tile;
 }
 
-}  // end of namespace sycl_backend
+}  // end of namespace gprat::sycl_backend

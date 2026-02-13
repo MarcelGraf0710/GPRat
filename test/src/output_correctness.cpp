@@ -160,7 +160,7 @@ std::string get_data_directory()
 constexpr std::size_t OPT_ITER = 3;
 constexpr std::size_t n_test = 128;
 constexpr std::size_t n_train = 128;
-constexpr std::size_t n_tiles = 2;
+constexpr std::size_t n_tiles = 16;
 constexpr std::size_t n_reg = 8;
 
 // CUDA test settings
@@ -169,7 +169,7 @@ constexpr int n_streams = 1;
 
 // SYCL test settings
 constexpr int device_id = 0;
-constexpr int n_queues = 16;
+constexpr int n_queues = 1;
 
 /**
  * @brief Generates results for a test configuration using the CPU for computations.
@@ -302,7 +302,7 @@ GpratResults run_on_data_sycl(
 
     std::cout << "Setting up Gaussian Process with SYCL" << std::endl;
 
-    // utils::start_hpx_runtime(0, nullptr);
+    utils::start_hpx_runtime(0, nullptr);
 
     gprat::GP gp_sycl(
         training_input.data,
@@ -313,24 +313,24 @@ GpratResults run_on_data_sycl(
         { 1.0, 1.0, 0.1 },
         trainable,
         gprat::DeviceParameters{device_id, n_queues}
-    ); // FIXME
+    ); 
 
     GpratResults results_sycl;
 
     results_sycl.cholesky = gp_sycl.cholesky();
     // // NOTE: optimize and optimize_step are currently not implemented for GPU
 
-    // std::cout << "Running predict with uncertainty" << std::endl;
-    // results_sycl.sum_no_optimize = 
-    //     gp_sycl.predict_with_uncertainty(test_input.data, test_tiles.first, test_tiles.second);
+    std::cout << "Running predict with uncertainty" << std::endl;
+    results_sycl.sum_no_optimize = 
+        gp_sycl.predict_with_uncertainty(test_input.data, test_tiles.first, test_tiles.second);
 
-    // std::cout << "Running predict with full covariance" << std::endl;
-    // results_sycl.full_no_optimize = gp_sycl.predict_with_full_cov(test_input.data, test_tiles.first, test_tiles.second);
+    std::cout << "Running predict with full covariance" << std::endl;
+    results_sycl.full_no_optimize = gp_sycl.predict_with_full_cov(test_input.data, test_tiles.first, test_tiles.second);
 
     std::cout << "Running predict" << std::endl;
     results_sycl.pred_no_optimize = gp_sycl.predict(test_input.data, test_tiles.first, test_tiles.second);
 
-    // utils::stop_hpx_runtime();
+    utils::stop_hpx_runtime();
 
     return results_sycl;
 }

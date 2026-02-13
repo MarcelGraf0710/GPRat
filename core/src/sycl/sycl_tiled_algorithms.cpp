@@ -1,8 +1,8 @@
 #include "sycl/sycl_tiled_algorithms.hpp"
-
 #include "sycl/adapter_onemath.hpp"
 #include "sycl/sycl_gp_optimizer.hpp"
 #include "sycl/sycl_gp_uncertainty.hpp"
+
 #include <hpx/algorithm.hpp>
 
 namespace gprat::sycl_backend
@@ -96,7 +96,6 @@ void forward_solve_tiled(
             // GEMV: b = b - A * a
             ft_rhs[m] = hpx::dataflow(
                 hpx::unwrapping(&gemv),
-                f_queue,
                 ft_tiles[m * n_tiles + k],
                 ft_rhs[k],
                 ft_rhs[m],
@@ -141,7 +140,6 @@ void backward_solve_tiled(
             // GEMV: b = b - A^T * a
             ft_rhs[static_cast<std::size_t>(m)] = hpx::dataflow(
                 hpx::unwrapping(&gemv),
-                f_queue,
                 ft_tiles[k * n_tiles + m],
                 ft_rhs[static_cast<std::size_t>(k)],
                 ft_rhs[static_cast<std::size_t>(m)],
@@ -278,7 +276,6 @@ void matrix_vector_tiled(
 
             ft_rhs[k] = hpx::dataflow(
                 hpx::unwrapping(&gemv),
-                f_queue,
                 ft_tiles[k * n_tiles + m],
                 ft_vector[m],
                 ft_rhs[k],
@@ -342,7 +339,6 @@ void compute_gemm_of_invK_y(
 
             ft_alpha[i] = hpx::dataflow(
                 hpx::unwrapping(&gemv),
-                f_queue,
                 ft_invK[i * n_tiles + j],
                 ft_y[j],
                 ft_alpha[i],
@@ -413,6 +409,7 @@ void symmetric_matrix_matrix_tiled(
     }
 }
 
+// FIXME
 void vector_difference_tiled(
     std::vector<hpx::shared_future<double *>> &ft_priorK,
     std::vector<hpx::shared_future<double *>> &ft_inter,
@@ -424,7 +421,9 @@ void vector_difference_tiled(
 {
     for (std::size_t i = 0; i < m_tiles; i++)
     {
-        ft_vector[i] = hpx::dataflow([&]() { return diag_posterior(ft_priorK[i], ft_inter[i], m_tile_size, std::ref(sycl_device)); } );
+        // FIXME:
+        //ft_vector[i] = hpx::dataflow([&]() { return diag_posterior(ft_priorK[i], ft_inter[i], m_tile_size, std::ref(sycl_device)); } );
+        ft_vector[i] = hpx::dataflow(hpx::unwrapping(&diag_posterior), ft_priorK[i], ft_inter[i], m_tile_size);
     }
 }
 
@@ -438,7 +437,8 @@ void matrix_diagonal_tiled(
 {
     for (std::size_t i = 0; i < m_tiles; i++)
     {
-        ft_vector[i] = hpx::dataflow([&]() { return diag_tile(ft_priorK[i * m_tiles + i], m_tile_size, std::ref(sycl_device)); } );
+        // ft_vector[i] = hpx::dataflow([&]() { return diag_tile(ft_priorK[i * m_tiles + i], m_tile_size, std::ref(sycl_device)); } );
+        ft_vector[i] = hpx::dataflow(hpx::unwrapping(&diag_tile), ft_priorK[i * m_tiles + i], m_tile_size);
     }
 }
 

@@ -1,10 +1,6 @@
 #ifndef GPRAT_SYCL_KERNELS_H
 #define GPRAT_SYCL_KERNELS_H
 
-// #ifdef __SYCL_DEVICE_ONLY__
-// #error "DEVICE COMPILATION HAPPENED HERE"
-// #endif
-
 // Includes ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "sycl_utils.hpp"
@@ -134,12 +130,7 @@ class GenTileCovarianceKernel
     vertical_lengthscale_(sek_params.vertical_lengthscale),
     noise_variance_(sek_params.noise_variance),
     out(1024, 256, cgh)
-    {
-        // std::stringstream ss;
-        // ss << "[GenTileCovarianceKernel CONSTRUCTOR] d_input = " << d_input << "\n";
-        // ss << "[GenTileCovarianceKernel CONSTRUCTOR] d_input_input = " << d_input_input << "\n";
-        // std::cout << ss.str() << std::endl;
-    }
+    {}
 
     void operator()(const sycl::item<2> &item) const
     {
@@ -152,9 +143,7 @@ class GenTileCovarianceKernel
         double distance = 0.0;
         double z_ik_minus_z_jk = 0.0;
 
-        // out << "Thread (" << i << "," << j << ") will attempt accesses to d_input at indices " << i_global + n_regressors - 1 << " and " << j_global + n_regressors - 1 << "\n";
         if(i == 0 && j == 0)
-        // out << "Kernel sees d_input = " << (uintptr_t)d_input << "\n";
         out << "I'm doing something on the GPU" << "\n";
 
         for (std::size_t k = 0; k < n_regressors; ++k)
@@ -358,9 +347,6 @@ class GenTileCrossCovarianceKernel
 
         double distance = 0.0;
         double z_ik_minus_z_jk = 0.0;
-
-        // out << "[GenTileCrossCovarianceKernel] Thread (" << i << "," << j << ") will attempt accesses to d_row_input at indices " << i_global + n_regressors - 1 
-        //     << " and d_col_input at " << j_global + n_regressors - 1 << "\n";
 
         for (std::size_t k = 0; k < n_regressors; ++k)
         {
