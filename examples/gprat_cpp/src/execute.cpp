@@ -8,9 +8,11 @@
 
 // Test 
 #include <hpx/include/async.hpp>
-#include <sycl/sycl.hpp>
-#include <oneapi/math.hpp>
 
+#if GPRAT_WITH_SYCL
+    #include <sycl/sycl.hpp>
+    #include <oneapi/math.hpp>
+#endif
 
 namespace gprat::example
 {
@@ -180,6 +182,8 @@ namespace gprat::example
         runtimes.pred = end_pred - start_pred;
     }
 
+#if GPRAT_WITH_SYCL
+
     void example_sycl(
         int new_argc,
         char **new_argv,
@@ -237,6 +241,8 @@ namespace gprat::example
         auto end_pred = std::chrono::high_resolution_clock::now();
         runtimes.pred = end_pred - start_pred;
     }
+
+#endif
 
 } // ! namespace gprat::example
 
@@ -390,6 +396,7 @@ int main(int argc, char *argv[])
                 else if(use_sycl)
                 {
                     std::cout << "Running SYCL example with device_id: " << gprat::example::device_id << " and n_queues: " << gprat::example::n_queues << std::endl;
+                    #if GPRAT_WITH_SYCL
                     gprat::example::example_sycl(
                         new_argc,
                         new_argv,
@@ -402,6 +409,7 @@ int main(int argc, char *argv[])
                         tile_size,
                         trainable 
                     );   
+                    #endif
                 }
 
                 // Stop the HPX runtime

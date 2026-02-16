@@ -277,6 +277,8 @@ GpratResults run_on_data_gpu(
     return results_gpu;
 }
 
+#if GPRAT_WITH_SYCL
+
 /**
  * @brief Generates results for a test configuration using a SYCL device for computations.
  * 
@@ -334,6 +336,8 @@ GpratResults run_on_data_sycl(
 
     return results_sycl;
 }
+
+#endif
 
 // Test cases /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -496,12 +500,16 @@ TEST_CASE("GP GPU results match known-good values (no loss)", "[integration][gpu
         INFO("GPU pred_no_optimize " << i);
         REQUIRE_THAT(results.pred_no_optimize[i], WithinRel(expected_results.pred_no_optimize[i], eps));
     }
-}
+
+    std::cout << "ENDING CUDA TEST" << std::endl;
+}       
 
 /*
  * Test for SYCL
  * NOTE: using higher tolerance than for CPU
  */
+
+ #if GPRAT_WITH_SYCL
 TEST_CASE("GP SYCL results match known-good values (no loss)", "[integration][sycl]")
 {
     if (!utils::compiled_with_sycl())
@@ -552,10 +560,6 @@ TEST_CASE("GP SYCL results match known-good values (no loss)", "[integration][sy
     {
         for (std::size_t j = 0, m = results.sum_no_optimize[i].size(); j != m; ++j)
         {
-
-            // FIXME
-            printf("results.sum_no_optimize[i][j] = %f\n", results.sum_no_optimize[i][j]);
-            printf("expected_results.sum_no_optimize[i][j] = %f\n", expected_results.sum_no_optimize[i][j]);
             INFO("SYCL sum_no_optimize " << i << " " << j);
             REQUIRE_THAT(results.sum_no_optimize[i][j], WithinRel(expected_results.sum_no_optimize[i][j], eps));
         }
@@ -576,5 +580,6 @@ TEST_CASE("GP SYCL results match known-good values (no loss)", "[integration][sy
         REQUIRE_THAT(results.pred_no_optimize[i], WithinRel(expected_results.pred_no_optimize[i], eps));
     }
 }
+#endif
 
 } // ! namespace gprat::test

@@ -522,7 +522,7 @@ double GP::calculate_loss()
 // cholesky ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 std::vector<std::vector<double>> GP::cholesky()
 {
-    #if !defined GPRAT_WITH_SYCL
+    #if !GPRAT_WITH_SYCL
     return hpx::async([this]()
     {
         #if GPRAT_WITH_CUDA

@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
 
-message(STATUS "YES")
 project(gprat_cpp)
 
 # This project can be built as part of GPRat itself or as a standalone project

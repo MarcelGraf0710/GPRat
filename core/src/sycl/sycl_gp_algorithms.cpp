@@ -423,6 +423,11 @@ assemble_tiles_with_zeros(std::size_t n_tile_size, std::size_t n_tiles, gprat::S
     return tiles;
 }
 
+
+
+
+
+
 // Only minor changes needed, should work OOTB
 std::vector<hpx::shared_future<double *>> assemble_prior_K_tiles(
     const double *d_test_input,
@@ -476,6 +481,12 @@ std::vector<hpx::shared_future<double *>> assemble_prior_K_tiles_full(
     return d_prior_K_tiles;
 }
 
+
+
+
+
+
+
 // Only minor changes needed, should work OOTB
 std::vector<hpx::shared_future<double *>> assemble_t_cross_covariance_tiles(
     const std::vector<hpx::shared_future<double *>> &d_cross_covariance_tiles,
@@ -500,6 +511,14 @@ std::vector<hpx::shared_future<double *>> assemble_t_cross_covariance_tiles(
     }
     return d_t_cross_covariance_tiles;
 }
+
+
+
+
+
+
+
+
 
 // Only minor changes needed, should work OOTB
 std::vector<hpx::shared_future<double *>> assemble_y_tiles(

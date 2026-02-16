@@ -2,11 +2,16 @@
 
 ### Options #######################################################################################
 option(GPRAT_WITH_SYCL "Enable SYCL support with oneMath" OFF)
+option(GPRAT_WITH_CUDA "Enable GPU support with CUDA, cuSolver, cuBLAS" OFF)
 
 add_compile_definitions(
   GPRAT_WITH_CUDA=$<BOOL:${GPRAT_WITH_CUDA}>
   GPRAT_WITH_SYCL=$<BOOL:${GPRAT_WITH_SYCL}>
 )
+
+if(GPRAT_WITH_CUDA)
+  enable_language(CUDA)
+endif()
 
 ### Source files ##################################################################################
 
@@ -40,6 +45,20 @@ if(GPRAT_WITH_SYCL)
 endif()
 #src/sycl/sycl_kernels.cpp
 
+# Add CUDA-specific source files if enabled
+if(GPRAT_WITH_CUDA)
+  list(
+    APPEND
+    SOURCE_FILES
+    src/gpu/cuda/gp_functions.cu
+    src/gpu/cuda/gp_algorithms.cu
+    src/gpu/cuda/gp_uncertainty.cu
+    src/gpu/cuda/gp_optimizer.cu
+    src/gpu/cuda/tiled_algorithms.cu
+    src/gpu/cuda/adapter_cublas.cu
+    src/gpu/cuda/cuda_kernels.cu)
+endif()
+
 message(STATUS "Added source files:")
 
 foreach(source ${SOURCE_FILES})
@@ -67,13 +86,17 @@ file(GLOB_RECURSE header_files CONFIGURE_DEPENDS include/*.hpp
 if(GPRAT_WITH_SYCL)
   file(GLOB_RECURSE sycl_headers CONFIGURE_DEPENDS include/sycl/*.hpp)
   list(APPEND header_files ${sycl_headers})
+
+  message(STATUS "Added SYCL headers:")
+  foreach(header ${sycl_headers})
+    message("   ${header}")
+  endforeach()
 endif()
 
-message(STATUS "Added SYCL headers:")
-
-foreach(header ${sycl_headers})
-  message("   ${header}")
-endforeach()
+if(GPRAT_WITH_CUDA)
+  file(GLOB_RECURSE cuda_headers CONFIGURE_DEPENDS include/gpu/*.cuh)
+  list(APPEND header_files ${cuda_headers})
+endif()
 
 target_sources(gprat_core PRIVATE ${header_files})
 
@@ -103,20 +126,11 @@ if(GPRAT_WITH_SYCL)
   message(STATUS "CMAKE_PREFIX_PATH = ${CMAKE_PREFIX_PATH}")
   find_package(oneMath REQUIRED)
 
-  # target_compile_options(
-  #   gprat_core PUBLIC
-  #   -fsycl
-  #   -fsycl-targets=nvptx64-nvidia-cuda
-  #   -Xsycl-target-backend=nvptx64-nvidia-cuda
-  #   --cuda-gpu-arch=sm_80
-  # )
-
   set(SYCL_FLAGS 
     ${SYCL_FLAGS} 
     -fsycl 
     -fsycl-targets=nvptx64-nvidia-cuda 
     -Xsycl-target-backend=nvptx64-nvidia-cuda 
-    -fno-fast-math
     --cuda-gpu-arch=sm_80
   )
   target_compile_options(gprat_core PUBLIC ${SYCL_FLAGS})
@@ -132,29 +146,6 @@ if(GPRAT_WITH_SYCL)
   if (TARGET ONEMATH::onemath)
     target_link_libraries(gprat_core PUBLIC ONEMATH::onemath)
   endif()
-
-
-# # Link SYCL libraries if enabled
-# if(GPRAT_WITH_SYCL)
-#   find_package(oneMath REQUIRED)
-#   target_link_libraries(gprat_core PUBLIC CUDA::cusolver CUDA::cublas)
-  
-#   if (TARGET ONEMATH::onemath_blas_cublas)
-#     target_link_libraries(dot_usm PRIVATE ONEMATH::onemath_blas_cublas)
-#   else()
-#   message(FATAL_ERROR "oneMath was not built with BLAS cuBLAS backend or target ONEMATH::onemath_blas_cublas not found")
-#   endif()
-
-#   if (TARGET ONEMATH::onemath_solver_cusolver)
-#     target_link_libraries(dot_usm PRIVATE ONEMATH::onemath_solver_cusolver)
-#   else()
-#     message(FATAL_ERROR "oneMath was not built with SOLVER cuSOLVER backend or target ONEMATH::onemath_solver_cusolver not found")
-#   endif()
-
-#   # Also link the generic onemath (selector) if needed (some builds require it)
-#   if (TARGET ONEMATH::onemath)
-#     target_link_libraries(dot_usm PRIVATE ONEMATH::onemath)
-#   endif()
 
 endif()
 
