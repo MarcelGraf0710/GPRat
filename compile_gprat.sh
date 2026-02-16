@@ -37,7 +37,7 @@ elif [[ "$2" == "sycl" ]]; then
     module use /data/scratch-simcl1/breyerml/Programs/.modulefiles
     module load icpx
     # Release:
-    #PRESET=release-linux-sycl
+    # PRESET=release-linux-sycl
     # Debug:
     PRESET=dev-linux-sycl
 elif [[ "$2" != "cpu" ]]; then

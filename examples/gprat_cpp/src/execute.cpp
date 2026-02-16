@@ -95,7 +95,7 @@ namespace gprat::example
         runtimes.init = end_init - start_init;
 
         // Initialize HPX with the new arguments, don't run hpx_main
-        utils::start_hpx_runtime(new_argc, new_argv);
+        // utils::start_hpx_runtime(new_argc, new_argv);
 
         auto start_cholesky = std::chrono::high_resolution_clock::now();
         std::vector<std::vector<double>> cholesky_cpu = gp_cpu.cholesky();
@@ -154,7 +154,7 @@ namespace gprat::example
         auto end_init = std::chrono::high_resolution_clock::now();
         runtimes.init = end_init - start_init;
 
-        utils::start_hpx_runtime(new_argc, new_argv);
+        // utils::start_hpx_runtime(new_argc, new_argv);
 
         auto start_cholesky = std::chrono::high_resolution_clock::now();
         std::vector<std::vector<double>> cholesky_gpu = gp_gpu.cholesky();
@@ -197,7 +197,7 @@ namespace gprat::example
         std::vector<bool> trainable
     )
     {
-        utils::start_hpx_runtime(new_argc, new_argv);
+        // utils::start_hpx_runtime(new_argc, new_argv);
 
         target = "sycl";
 
@@ -248,73 +248,6 @@ namespace gprat::example
 
 int main(int argc, char *argv[])
 {
-    // utils::start_hpx_runtime(0, nullptr);
-    
-    // constexpr std::int64_t N = 4;
-
-    // sycl::queue queue{sycl::default_selector_v};
-
-    // std::cout << "Running on: "
-    //           << queue.get_device().get_info<sycl::info::device::name>()
-    //           << "\n";
-
-    // // USM shared allocations
-    // double* a1 = sycl::malloc_shared<double>(N * N, queue);
-    // double* a2 = sycl::malloc_shared<double>(N * N, queue);
-    // double* a3 = sycl::malloc_shared<double>(N * N, queue);
-
-    // // Initialize matrices (column-major)
-    // for (std::int64_t j = 0; j < N; ++j) {
-    //     for (std::int64_t i = 0; i < N; ++i) {
-    //         a1[i + j * N] = (i == j) ? 1.0 : 0.0; // Identity
-    //         a2[i + j * N] = 1.0;                 // Ones
-    //         a3[i + j * N] = 0.0;                 // Zero
-    //     }
-    // }
-
-    // // --- HPX async GEMM directly in main ---
-    // auto fut = hpx::async([&]() -> double* {
-
-    //     oneapi::math::blas::column_major::gemm(
-    //         queue,
-    //         oneapi::math::transpose::trans,
-    //         oneapi::math::transpose::nontrans,
-    //         N, N, N,
-    //         -1.0,
-    //         a1, N,
-    //         a2, N,
-    //         1.0,
-    //         a3, N
-    //     );
-
-    //     // REQUIRED: synchronize SYCL with HPX
-    //     queue.wait_and_throw();
-
-    //     return a3;
-    // });
-
-    // // Immediate get, as requested
-    // double* C = fut.get();
-
-    // // Print result
-    // std::cout << "Result matrix C:\n";
-    // for (std::int64_t i = 0; i < N; ++i) {
-    //     for (std::int64_t j = 0; j < N; ++j) {
-    //         std::cout << C[i + j * N] << " ";
-    //     }
-    //     std::cout << "\n";
-    // }
-
-    // sycl::free(a1, queue);
-    // sycl::free(a2, queue);
-    // sycl::free(a3, queue);
-
-    // utils::stop_hpx_runtime();
-
-    // return 0;
-
-
-    std::cout << "Hello from the GPRat C++ example!" << std::endl;
     std::string train_path = "../../../../data/data_1024/training_input.txt";
     std::string out_path = "../../../../data/data_1024/training_output.txt";
     std::string test_path = "../../../../data/data_1024/test_input.txt";
@@ -332,7 +265,7 @@ int main(int argc, char *argv[])
     {
         // Create new argc and argv to include the --hpx:threads argument
         std::vector<std::string> args(argv, argv + argc);
-        if (use_gpu) { args.erase(args.begin() + 1); }
+        if (use_gpu || use_sycl) { args.erase(args.begin() + 1); }
         args.push_back("--hpx:threads=" + std::to_string(core));
 
         // Convert the arguments to char* array
@@ -341,6 +274,8 @@ int main(int argc, char *argv[])
 
         int new_argc = static_cast<int>(cstr_args.size());
         char **new_argv = cstr_args.data();
+
+        utils::start_hpx_runtime(new_argc, new_argv);
 
         for (std::size_t start = gprat::example::START; start <= gprat::example::END; start = start * gprat::example::STEP)
         {
@@ -421,6 +356,8 @@ int main(int argc, char *argv[])
                 gprat::example::append_to_output_file(target, n_train, core, l, runtimes, total_time);
             }
         }
+
+        utils::stop_hpx_runtime();
     }
 
     // utils::stop_hpx_runtime();

@@ -96,19 +96,8 @@ syrk(sycl::queue queue,
  *
  * @return updated matrix f_C, in-place update
  */
-double *
-gemm(double *f_A,
-     double *f_B,
-     double *f_C,
-     const std::size_t M,
-     const std::size_t N,
-     const std::size_t K,
-     const oneapi::math::transpose is_A_transposed,
-     const oneapi::math::transpose is_B_transposed);
-
 // double *
-// gemm(sycl::queue queue,
-//      double *f_A,
+// gemm(double *f_A,
 //      double *f_B,
 //      double *f_C,
 //      const std::size_t M,
@@ -116,6 +105,17 @@ gemm(double *f_A,
 //      const std::size_t K,
 //      const oneapi::math::transpose is_A_transposed,
 //      const oneapi::math::transpose is_B_transposed);
+
+double *
+gemm(sycl::queue queue,
+     double *f_A,
+     double *f_B,
+     double *f_C,
+     const std::size_t M,
+     const std::size_t N,
+     const std::size_t K,
+     const oneapi::math::transpose is_A_transposed,
+     const oneapi::math::transpose is_B_transposed);
 
 // BLAS LEVEL 2 OPERATIONS ////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -150,24 +150,24 @@ trsv(sycl::queue queue,
  *
  * @return updated vector f_y, in-place update
  */
-double *
-gemv(double *f_A,
-     double *f_x,
-     double *f_y,
-     const std::size_t M,
-     const std::size_t N,
-     const double alpha,
-     const oneapi::math::transpose is_A_transposed);
-
 // double *
-// gemv(sycl::queue queue,
-//      double * f_A,
-//      double * f_x,
-//      double * f_y,
+// gemv(double *f_A,
+//      double *f_x,
+//      double *f_y,
 //      const std::size_t M,
 //      const std::size_t N,
 //      const double alpha,
 //      const oneapi::math::transpose is_A_transposed);
+
+double *
+gemv(sycl::queue queue,
+     double * f_A,
+     double * f_x,
+     double * f_y,
+     const std::size_t M,
+     const std::size_t N,
+     const double alpha,
+     const oneapi::math::transpose is_A_transposed);
 
 /**
  * @brief General matrix rank-1 update: A = A - x*y^T

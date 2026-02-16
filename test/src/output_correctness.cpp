@@ -169,7 +169,7 @@ constexpr int n_streams = 1;
 
 // SYCL test settings
 constexpr int device_id = 0;
-constexpr int n_queues = 1;
+constexpr int n_queues = 8;
 
 /**
  * @brief Generates results for a test configuration using the CPU for computations.
@@ -320,16 +320,10 @@ GpratResults run_on_data_sycl(
     GpratResults results_sycl;
 
     results_sycl.cholesky = gp_sycl.cholesky();
-    // // NOTE: optimize and optimize_step are currently not implemented for GPU
-
-    std::cout << "Running predict with uncertainty" << std::endl;
+    // NOTE: optimize and optimize_step are currently not implemented for GPU
     results_sycl.sum_no_optimize = 
         gp_sycl.predict_with_uncertainty(test_input.data, test_tiles.first, test_tiles.second);
-
-    std::cout << "Running predict with full covariance" << std::endl;
     results_sycl.full_no_optimize = gp_sycl.predict_with_full_cov(test_input.data, test_tiles.first, test_tiles.second);
-
-    std::cout << "Running predict" << std::endl;
     results_sycl.pred_no_optimize = gp_sycl.predict(test_input.data, test_tiles.first, test_tiles.second);
 
     utils::stop_hpx_runtime();
@@ -432,12 +426,10 @@ TEST_CASE("GP GPU results match known-good values (no loss)", "[integration][gpu
 {
     if (!utils::compiled_with_cuda())
     {
-        WARN("CUDA not available — skipping GPU test.");
+        INFO("CUDA not available — skipping GPU test.");
         return;
     }
-
-    std::cout << "STARTING CUDA TEST" << std::endl;
-
+    
     const std::string root = get_data_directory();
     const std::string train = root + "/data_1024/training_input.txt";
     const std::string out = root + "/data_1024/training_output.txt";
@@ -477,10 +469,6 @@ TEST_CASE("GP GPU results match known-good values (no loss)", "[integration][gpu
     {
         for (std::size_t j = 0, m = results.sum_no_optimize[i].size(); j != m; ++j)
         {
-
-            // FIXME
-            // printf("results.sum_no_optimize[i][j] = %f\n", results.sum_no_optimize[i][j]);
-            // printf("expected_results.sum_no_optimize[i][j] = %f\n", expected_results.sum_no_optimize[i][j]);
             INFO("GPU sum_no_optimize " << i << " " << j);
             REQUIRE_THAT(results.sum_no_optimize[i][j], WithinRel(expected_results.sum_no_optimize[i][j], eps));
         }
@@ -500,8 +488,6 @@ TEST_CASE("GP GPU results match known-good values (no loss)", "[integration][gpu
         INFO("GPU pred_no_optimize " << i);
         REQUIRE_THAT(results.pred_no_optimize[i], WithinRel(expected_results.pred_no_optimize[i], eps));
     }
-
-    std::cout << "ENDING CUDA TEST" << std::endl;
 }       
 
 /*
@@ -514,7 +500,7 @@ TEST_CASE("GP SYCL results match known-good values (no loss)", "[integration][sy
 {
     if (!utils::compiled_with_sycl())
     {
-        WARN("SYCL not available — skipping SYCL test.");
+        INFO("SYCL not available — skipping SYCL test.");
         return;
     }
 

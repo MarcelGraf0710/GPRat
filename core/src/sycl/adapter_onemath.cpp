@@ -25,7 +25,7 @@ potrf(sycl::queue queue, double *f_A, const std::size_t N)
 
     oneapi::math::lapack::potrf(queue, oneapi::math::uplo::upper, static_cast<std::int64_t>(N), f_A, static_cast<std::int64_t>(N), scratchpad, scratchpad_size);
     
-    queue.wait();
+    queue.wait_and_throw();
 
     sycl::free(scratchpad, queue);
 
@@ -123,21 +123,61 @@ syrk(sycl::queue queue,
     return f_C;
 }
 
+double *
+gemm(sycl::queue queue,
+     double *f_A,
+     double *f_B, 
+     double *f_C, 
+     const std::size_t M,
+     const std::size_t N,
+     const std::size_t K,
+     const oneapi::math::transpose is_A_transposed,
+     const oneapi::math::transpose is_B_transposed) 
+{
+    // row-major GEMM
+    // C = alpha * op(A) * op(B) + beta * C
+    //   = op(A) * op(B) - C
+    // for op(A): transpose_A
+    // for op(B): transpose_B
+
+    // column-major cuBLAS GEMM for row-major stored A, B, C
+    // C = alpha * op(B) * op(A) + beta * C
+    //   = op(B) * op(A) - C
+    // for inverted ordering of matrices A, B
+
+    oneapi::math::blas::column_major::gemm(
+        queue,
+        is_B_transposed,
+        is_A_transposed,
+        static_cast<std::int64_t>(N),
+        static_cast<std::int64_t>(M),
+        static_cast<std::int64_t>(K),
+        -1.0,
+        f_B,
+        static_cast<std::int64_t>(N),
+        f_A, 
+        static_cast<std::int64_t>(K),
+        1.0,
+        f_C, 
+        static_cast<std::int64_t>(N)); 
+
+    return f_C;
+}
+
+
 // double *
-// gemm(sycl::queue queue,
-//      double *f_A, // a2
-//      double *f_B, // a1
-//      double *f_C, // a3
+// gemm(double *f_A,
+//      double *f_B,
+//      double *f_C,
 //      const std::size_t M,
 //      const std::size_t N,
 //      const std::size_t K,
-//      const oneapi::math::transpose is_A_transposed, //nontrans
-//      const oneapi::math::transpose is_B_transposed) // trans
+//      const oneapi::math::transpose is_A_transposed, 
+//      const oneapi::math::transpose is_B_transposed)
 // {
-//     // std::cout << "[adapter_onemath.cpp] [gemm] : Entering \n";
-
-//     // const double alpha = -1.0;
-//     // const double beta = 1.0;
+//     // GEMM constants
+//     const double alpha = -1.0;
+//     const double beta = 1.0;
 
 //     // row-major GEMM
 //     // C = alpha * op(A) * op(B) + beta * C
@@ -150,16 +190,7 @@ syrk(sycl::queue queue,
 //     //   = op(B) * op(A) - C
 //     // for inverted ordering of matrices A, B
 
-//     // auto ptype_A = sycl::get_pointer_type(f_A, queue.get_context());
-//     // auto ptype_B = sycl::get_pointer_type(f_B, queue.get_context());
-//     // auto ptype_C = sycl::get_pointer_type(f_C, queue.get_context());
-
-//     // std::cout << "[adapter_onemath.cpp] [gemm] : Pointer types - A: " 
-//     // << usm_alloc_to_string(ptype_A) << ", B: " 
-//     // << usm_alloc_to_string(ptype_B) << ", C: " 
-//     // << usm_alloc_to_string(ptype_C) << "\n";
-
-//     // queue.wait();
+//     sycl::queue queue(sycl::gpu_selector_v);
 
 //     oneapi::math::blas::column_major::gemm(
 //         queue,
@@ -168,70 +199,19 @@ syrk(sycl::queue queue,
 //         static_cast<std::int64_t>(N),
 //         static_cast<std::int64_t>(M),
 //         static_cast<std::int64_t>(K),
-//         -1.0,
-//         f_B, // a1
+//         alpha,
+//         f_B,
 //         static_cast<std::int64_t>(N),
-//         f_A, // a2
+//         f_A,
 //         static_cast<std::int64_t>(K),
-//         1.0,
-//         f_C, // a3
+//         beta,
+//         f_C,
 //         static_cast<std::int64_t>(N)); 
 
-//     // queue.wait();
-
-//     // std::cout << "[adapter_onemath.cpp] [gemm] : Leaving \n";
+//     queue.wait();
 
 //     return f_C;
 // }
-
-
-double *
-gemm(double *f_A,
-     double *f_B,
-     double *f_C,
-     const std::size_t M,
-     const std::size_t N,
-     const std::size_t K,
-     const oneapi::math::transpose is_A_transposed, 
-     const oneapi::math::transpose is_B_transposed)
-{
-    // GEMM constants
-    const double alpha = -1.0;
-    const double beta = 1.0;
-
-    // row-major GEMM
-    // C = alpha * op(A) * op(B) + beta * C
-    //   = op(A) * op(B) - C
-    // for op(A): transpose_A
-    // for op(B): transpose_B
-
-    // column-major cuBLAS GEMM for row-major stored A, B, C
-    // C = alpha * op(B) * op(A) + beta * C
-    //   = op(B) * op(A) - C
-    // for inverted ordering of matrices A, B
-
-    sycl::queue queue(sycl::gpu_selector_v);
-
-    oneapi::math::blas::column_major::gemm(
-        queue,
-        is_B_transposed,
-        is_A_transposed,
-        static_cast<std::int64_t>(N),
-        static_cast<std::int64_t>(M),
-        static_cast<std::int64_t>(K),
-        alpha,
-        f_B,
-        static_cast<std::int64_t>(N),
-        f_A,
-        static_cast<std::int64_t>(K),
-        beta,
-        f_C,
-        static_cast<std::int64_t>(N)); 
-
-    queue.wait();
-
-    return f_C;
-}
 
 
 
@@ -271,53 +251,9 @@ trsv(sycl::queue queue,
     return f_b;
 }
 
-// double *
-// gemv(sycl::queue queue,
-//      double *f_A,
-//      double *f_x,
-//      double *f_y,
-//      const std::size_t M,
-//      const std::size_t N,
-//      const double alpha,
-//      const oneapi::math::transpose is_A_transposed)
-// {
-//     // GEMV constants
-//     const double alpha_value = alpha;
-//     const double beta = 1.0;
-
-//     // row-major GEMV
-//     // y = alpha * op(A) * x + beta * y
-//     //   = alpha * op(A) * x + y
-//     // for MxN matrix A
-//     // for vector x
-//     // for vector y
-
-//     // column-major cuBLAS GEMV for row-major stored A (and x,y)
-//     // for op: opposite of transpose_A
-
-//     queue.wait();
-
-//     oneapi::math::blas::column_major::gemv(
-//         queue,
-//         invert_transpose_operator(is_A_transposed),
-//         static_cast<std::int64_t>(N),
-//         static_cast<std::int64_t>(M),
-//         alpha_value,
-//         f_A,
-//         static_cast<std::int64_t>(N),
-//         f_x,
-//         1,
-//         beta,
-//         f_y,
-//         1);
-
-//     queue.wait();
-
-//     return f_y;
-// }
-
 double *
-gemv(double *f_A,
+gemv(sycl::queue queue,
+     double *f_A,
      double *f_x,
      double *f_y,
      const std::size_t M,
@@ -339,8 +275,6 @@ gemv(double *f_A,
     // column-major cuBLAS GEMV for row-major stored A (and x,y)
     // for op: opposite of transpose_A
 
-    sycl::queue queue(sycl::gpu_selector_v);
-
     oneapi::math::blas::column_major::gemv(
         queue,
         invert_transpose_operator(is_A_transposed),
@@ -355,10 +289,54 @@ gemv(double *f_A,
         f_y,
         1);
 
-    queue.wait();
+    // queue.wait();
 
     return f_y;
 }
+
+// double *
+// gemv(double *f_A,
+//      double *f_x,
+//      double *f_y,
+//      const std::size_t M,
+//      const std::size_t N,
+//      const double alpha,
+//      const oneapi::math::transpose is_A_transposed)
+// {
+//     // GEMV constants
+//     const double alpha_value = alpha;
+//     const double beta = 1.0;
+
+//     // row-major GEMV
+//     // y = alpha * op(A) * x + beta * y
+//     //   = alpha * op(A) * x + y
+//     // for MxN matrix A
+//     // for vector x
+//     // for vector y
+
+//     // column-major cuBLAS GEMV for row-major stored A (and x,y)
+//     // for op: opposite of transpose_A
+
+//     sycl::queue queue(sycl::gpu_selector_v);
+
+//     oneapi::math::blas::column_major::gemv(
+//         queue,
+//         invert_transpose_operator(is_A_transposed),
+//         static_cast<std::int64_t>(N),
+//         static_cast<std::int64_t>(M),
+//         alpha_value,
+//         f_A,
+//         static_cast<std::int64_t>(N),
+//         f_x,
+//         1,
+//         beta,
+//         f_y,
+//         1);
+
+//     queue.wait();
+
+//     return f_y;
+// }
 
 double *
 ger(sycl::queue queue,
