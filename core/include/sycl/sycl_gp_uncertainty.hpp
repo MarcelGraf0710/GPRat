@@ -1,11 +1,6 @@
 #ifndef SYCL_GP_UNCERTAINTY_H
 #define SYCL_GP_UNCERTAINTY_H
 
-#include <hpx/future.hpp>
-#include "target.hpp"
-
-#include <oneapi/math.hpp>
-
 namespace gprat::sycl_backend
 {
 
@@ -18,8 +13,8 @@ namespace gprat::sycl_backend
  *
  * @return Diagonal elements of posterior covariance matrix
  */
-hpx::shared_future<double *> diag_posterior(
-    const hpx::shared_future<double *> A, const hpx::shared_future<double *> B, std::size_t M, gprat::SYCL_DEVICE &sycl_device);
+double *diag_posterior(
+    double *A, double *B, std::size_t M);
 
 /**
  * @brief Retrieve diagonal elements of posterior covariance matrix.
@@ -29,8 +24,8 @@ hpx::shared_future<double *> diag_posterior(
  *
  * @return Diagonal elements of posterior covariance matrix
  */
-hpx::shared_future<double *> diag_tile(const hpx::shared_future<double *> A, std::size_t M, gprat::SYCL_DEVICE &sycl_device);
+double *diag_tile(double *A, std::size_t M);//, gprat::SYCL_DEVICE &sycl_device);
 
-}  // end of namespace gpu
+}  // end of namespace gprat::sycl_backend
 
 #endif  // end of SYCL_GP_UNCERTAINTY_H

@@ -77,7 +77,7 @@ vertical_lengthscale_(sek_params.vertical_lengthscale),
 noise_variance_(sek_params.noise_variance)
 {}
 
-// Done, check if compiles
+
 // Launch over range [0, n_tile_size] x [0, n_tile_size]
 void GenTileCovarianceKernel::operator()(const sycl::item<2> &item) const
 {
@@ -126,7 +126,7 @@ lengthscale_(sek_params.lengthscale),
 vertical_lengthscale_(sek_params.vertical_lengthscale)
 {}
 
-// Done, check if compiles
+
 // Launch over range [0, n_tile_size] x [0, n_tile_size]
 void GenTileFullPriorCovarianceKernel::operator()(const sycl::item<2> &item) const
 {
@@ -173,7 +173,7 @@ lengthscale_(sek_params.lengthscale),
 vertical_lengthscale_(sek_params.vertical_lengthscale)
 {}
 
-// Done, check if compiles
+
 // Launch over linear kernel with range [0, n_tile_size]
 void GenTilePriorCovarianceKernel::operator()(const sycl::id<1> &id) const
 {
@@ -220,7 +220,7 @@ lengthscale_(sek_params.lengthscale),
 vertical_lengthscale_(sek_params.vertical_lengthscale)
 {}
 
-// Done, check if compiles
+
 // Launch over range [0, n_row_tile_size] x [0, n_column_tile_size]
 void GenTileCrossCovarianceKernel::operator()(const sycl::item<2> &item) const
 {
@@ -259,7 +259,7 @@ row(row),
 n_tile_size(n_tile_size)
 {}
 
-// Done, check if compiles
+
 // Launch over linear kernel with range [0, n_tile_size]
 void GenTileOutputKernel::operator()(const sycl::id<1> &id) const
 {

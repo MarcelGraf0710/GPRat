@@ -20,8 +20,11 @@ endif()
 # Enables/disables computation with CUDA on test system
 option(GPRAT_WITH_CUDA
        "Enable additional computation with CUDA, cuSolver, cuBLAS" OFF)
+option(GPRAT_WITH_SYCL
+       "Enable additional computation with SYCL, oneMath" OFF)
 # Pass variable to C++ code
 add_compile_definitions(GPRAT_WITH_CUDA=$<BOOL:${GPRAT_WITH_CUDA}>)
+add_compile_definitions(GPRAT_WITH_SYCL=$<BOOL:${GPRAT_WITH_SYCL}>)
 
 # Add the executable
 add_executable(gprat_cpp src/execute.cpp)

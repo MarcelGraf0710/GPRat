@@ -1,10 +1,6 @@
 #ifndef GPRAT_SYCL_KERNELS_H
 #define GPRAT_SYCL_KERNELS_H
 
-// #ifdef __SYCL_DEVICE_ONLY__
-// #error "DEVICE COMPILATION HAPPENED HERE"
-// #endif
-
 // Includes ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "sycl_utils.hpp"
@@ -107,7 +103,6 @@ class GenTileCovarianceKernel
     double lengthscale_;
     double vertical_lengthscale_;
     double noise_variance_;
-    sycl::stream out;
 
     public:
 
@@ -121,8 +116,7 @@ class GenTileCovarianceKernel
         const std::size_t n_regressors,
         const std::size_t tile_row,
         const std::size_t tile_column,
-        const gprat_hyper::SEKParams sek_params,
-        sycl::handler &cgh
+        const gprat_hyper::SEKParams sek_params
     ) :
     d_tile(d_tile),
     d_input(d_input_input),
@@ -132,14 +126,8 @@ class GenTileCovarianceKernel
     tile_column(tile_column),
     lengthscale_(sek_params.lengthscale),
     vertical_lengthscale_(sek_params.vertical_lengthscale),
-    noise_variance_(sek_params.noise_variance),
-    out(1024, 256, cgh)
-    {
-        // std::stringstream ss;
-        // ss << "[GenTileCovarianceKernel CONSTRUCTOR] d_input = " << d_input << "\n";
-        // ss << "[GenTileCovarianceKernel CONSTRUCTOR] d_input_input = " << d_input_input << "\n";
-        // std::cout << ss.str() << std::endl;
-    }
+    noise_variance_(sek_params.noise_variance)
+    {}
 
     void operator()(const sycl::item<2> &item) const
     {
@@ -151,11 +139,6 @@ class GenTileCovarianceKernel
 
         double distance = 0.0;
         double z_ik_minus_z_jk = 0.0;
-
-        // out << "Thread (" << i << "," << j << ") will attempt accesses to d_input at indices " << i_global + n_regressors - 1 << " and " << j_global + n_regressors - 1 << "\n";
-        if(i == 0 && j == 0)
-        // out << "Kernel sees d_input = " << (uintptr_t)d_input << "\n";
-        out << "I'm doing something on the GPU" << "\n";
 
         for (std::size_t k = 0; k < n_regressors; ++k)
         {
@@ -319,7 +302,6 @@ class GenTileCrossCovarianceKernel
     std::size_t n_regressors;
     double lengthscale_;
     double vertical_lengthscale_;
-    sycl::stream out;
 
     public:
 
@@ -332,8 +314,7 @@ class GenTileCrossCovarianceKernel
         const std::size_t tile_row,
         const std::size_t tile_column,
         const std::size_t n_regressors,
-        const gprat_hyper::SEKParams sek_params,
-        sycl::handler &cgh
+        const gprat_hyper::SEKParams sek_params
     ) :
     d_tile(d_tile),
     d_row_input(d_row_input),
@@ -344,8 +325,7 @@ class GenTileCrossCovarianceKernel
     tile_column(tile_column),
     n_regressors(n_regressors),
     lengthscale_(sek_params.lengthscale),
-    vertical_lengthscale_(sek_params.vertical_lengthscale),
-    out(1024, 256, cgh)
+    vertical_lengthscale_(sek_params.vertical_lengthscale)
     {}
 
     void operator()(const sycl::item<2> &item) const
@@ -358,9 +338,6 @@ class GenTileCrossCovarianceKernel
 
         double distance = 0.0;
         double z_ik_minus_z_jk = 0.0;
-
-        // out << "[GenTileCrossCovarianceKernel] Thread (" << i << "," << j << ") will attempt accesses to d_row_input at indices " << i_global + n_regressors - 1 
-        //     << " and d_col_input at " << j_global + n_regressors - 1 << "\n";
 
         for (std::size_t k = 0; k < n_regressors; ++k)
         {
