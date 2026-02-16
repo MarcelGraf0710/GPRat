@@ -10,11 +10,6 @@
 
 #include <sstream>
 
-// #ifdef __SYCL_DEVICE_ONLY__
-// #error "DEVICE COMPILATION HAPPENED HERE"
-// #endif
-
-
 namespace gprat::sycl_backend
 {
 
@@ -34,18 +29,14 @@ double * gen_tile_covariance(const double *d_input,
 
         sycl::queue queue = sycl_device.next_queue();
 
-        std::cout << "[gen_tile_covariance] malloc \n";
-
         d_tile = sycl::malloc_device<gprat::sycl_backend::real_t>(n_tile_size * n_tile_size, queue);
-        
-        std::cout << "[gen_tile_covariance] submit kernel \n";
 
         auto event = queue.submit
         (
             [&](sycl::handler &cgh)
             {
                 auto kernel = GenTileCovarianceKernel(
-                    d_tile, d_input, n_tile_size, n_regressors, tile_row, tile_column, sek_params, cgh
+                    d_tile, d_input, n_tile_size, n_regressors, tile_row, tile_column, sek_params
                 );
                 cgh.parallel_for(sycl::range<2>(n_tile_size, n_tile_size), kernel); 
             }
@@ -53,7 +44,6 @@ double * gen_tile_covariance(const double *d_input,
 
         event.wait();
 
-        std::cout << "[gen_tile_covariance] all done \n";
         return d_tile;
     } 
     catch (const sycl::exception& e) 
@@ -63,7 +53,7 @@ double * gen_tile_covariance(const double *d_input,
     }
 }
 
-// Done, check if compiles
+
 double *gen_tile_full_prior_covariance(
     const double *d_input,
     const std::size_t tile_row,
@@ -102,7 +92,7 @@ double *gen_tile_full_prior_covariance(
     }
 }
 
-// Done, check if compiles
+
 double *gen_tile_prior_covariance(
     const double *d_input,
     const std::size_t tile_row,
@@ -141,7 +131,7 @@ double *gen_tile_prior_covariance(
     }
 }
 
-// Done, check if compiles
+
 double *gen_tile_cross_covariance(
     const double *d_row_input,
     const double *d_col_input,
@@ -160,8 +150,6 @@ double *gen_tile_cross_covariance(
         sycl::queue queue = sycl_device.next_queue();
 
         d_tile = sycl::malloc_device<gprat::sycl_backend::real_t>(n_row_tile_size * n_column_tile_size, queue);
-
-        // std::cout << "[GenTileCrossCovarianceKernel] launched over range " << n_row_tile_size << " x " << n_column_tile_size << "\n";
         
         auto event = queue.submit
         (
@@ -176,8 +164,7 @@ double *gen_tile_cross_covariance(
                     tile_row, 
                     tile_column, 
                     n_regressors, 
-                    sek_params,
-                    cgh
+                    sek_params
                 );
                 cgh.parallel_for(sycl::range<2>(n_row_tile_size, n_column_tile_size), kernel); 
             }
@@ -193,7 +180,7 @@ double *gen_tile_cross_covariance(
     }
 }
 
-// Done, check if compiles
+
 hpx::shared_future<double *> gen_tile_cross_cov_T(std::size_t n_row_tile_size,
                                                   std::size_t n_column_tile_size,
                                                   const hpx::shared_future<double *> f_cross_covariance_tile,
@@ -235,7 +222,7 @@ hpx::shared_future<double *> gen_tile_cross_cov_T(std::size_t n_row_tile_size,
     }
 }
 
-// Done, check if compiles
+
 double *
 gen_tile_output(
     const std::size_t row, 
@@ -271,7 +258,7 @@ gen_tile_output(
     }
 }
 
-// Done, check if compiles
+
 double *gen_tile_zeros(std::size_t n_tile_size, gprat::SYCL_DEVICE &sycl_device)
 {
     try
@@ -292,7 +279,7 @@ double *gen_tile_zeros(std::size_t n_tile_size, gprat::SYCL_DEVICE &sycl_device)
 
 // Standard C++ code //////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Only minor changes needed, should work OOTB
+
 double compute_error_norm(std::size_t n_tiles,
                           std::size_t n_tile_size,
                           const std::vector<double> &b,
@@ -328,41 +315,24 @@ std::vector<hpx::shared_future<double *>> assemble_tiled_covariance_matrix(
     {
         for (std::size_t tile_column = 0; tile_column < tile_row + 1; ++tile_column)
         {
-            // d_tiles[tile_row * n_tiles + tile_column] = hpx::async([=,&sycl_device]()
-            //     {
-            //         return gen_tile_covariance(
-            //             d_training_input,
-            //             tile_row,
-            //             tile_column,
-            //             n_tile_size,
-            //             n_regressors,
-            //             sek_params,
-            //             std::ref(sycl_device)
-            //         );
-            //     }
-            // );
-                double *result = gen_tile_covariance(
-                        d_training_input,
-                        tile_row,
-                        tile_column,
-                        n_tile_size,
-                        n_regressors,
-                        sek_params,
-                        std::ref(sycl_device)   
-                    );
+            double *result = gen_tile_covariance(
+                    d_training_input,
+                    tile_row,
+                    tile_column,
+                    n_tile_size,
+                    n_regressors,
+                    sek_params,
+                    std::ref(sycl_device)   
+                );
 
-                std::cout << "[sycl_gp_algorithms.cpp/assemble_tiled_covariance_matrix] returned from gen_tile_covariance\n";
-
-                d_tiles[tile_row * n_tiles + tile_column] = hpx::make_ready_future<double *>(result);
-            }
+            d_tiles[tile_row * n_tiles + tile_column] = hpx::make_ready_future<double *>(result);
+        }
     }
-
-    std::cout << "[gprat::sycl_backend::assemble_tiled_covariance_matrix] All done. " << std::endl;
 
     return d_tiles;
 }
 
-// Only minor changes needed, should work OOTB
+
 std::vector<hpx::shared_future<double *>> assemble_alpha_tiles(
     const double *d_output, const std::size_t n_tiles, const std::size_t n_tile_size, gprat::SYCL_DEVICE &sycl_device)
 {
@@ -376,7 +346,7 @@ std::vector<hpx::shared_future<double *>> assemble_alpha_tiles(
     return alpha_tiles;
 }
 
-// Only minor changes needed, should work OOTB
+
 std::vector<hpx::shared_future<double *>> assemble_cross_covariance_tiles(
     const double *d_test_input,
     const double *d_training_input,
@@ -411,7 +381,7 @@ std::vector<hpx::shared_future<double *>> assemble_cross_covariance_tiles(
     return cross_covariance_tiles;
 }
 
-// Only minor changes needed, should work OOTB
+
 std::vector<hpx::shared_future<double *>>
 assemble_tiles_with_zeros(std::size_t n_tile_size, std::size_t n_tiles, gprat::SYCL_DEVICE &sycl_device)
 {
@@ -428,7 +398,7 @@ assemble_tiles_with_zeros(std::size_t n_tile_size, std::size_t n_tiles, gprat::S
 
 
 
-// Only minor changes needed, should work OOTB
+
 std::vector<hpx::shared_future<double *>> assemble_prior_K_tiles(
     const double *d_test_input,
     const std::size_t m_tiles,
@@ -447,7 +417,7 @@ std::vector<hpx::shared_future<double *>> assemble_prior_K_tiles(
     return d_prior_K_tiles;
 }
 
-// Only minor changes needed, should work OOTB
+
 std::vector<hpx::shared_future<double *>> assemble_prior_K_tiles_full(
     const double *d_test_input,
     const std::size_t m_tiles,
@@ -487,7 +457,7 @@ std::vector<hpx::shared_future<double *>> assemble_prior_K_tiles_full(
 
 
 
-// Only minor changes needed, should work OOTB
+
 std::vector<hpx::shared_future<double *>> assemble_t_cross_covariance_tiles(
     const std::vector<hpx::shared_future<double *>> &d_cross_covariance_tiles,
     const std::size_t n_tiles,
@@ -513,14 +483,6 @@ std::vector<hpx::shared_future<double *>> assemble_t_cross_covariance_tiles(
 }
 
 
-
-
-
-
-
-
-
-// Only minor changes needed, should work OOTB
 std::vector<hpx::shared_future<double *>> assemble_y_tiles(
     const double *d_training_output, const std::size_t n_tiles, const std::size_t n_tile_size, gprat::SYCL_DEVICE &sycl_device)
 {
@@ -532,8 +494,6 @@ std::vector<hpx::shared_future<double *>> assemble_y_tiles(
     return d_y_tiles;
 }
 
-// FLAG: possibly unnecessary with SYCL USM capabilities
-// Done, check if compiles
 std::vector<double> copy_tiled_vector_to_host_vector(
     std::vector<hpx::shared_future<double *>> &d_tiles,
     std::size_t n_tile_size,
@@ -567,8 +527,6 @@ std::vector<double> copy_tiled_vector_to_host_vector(
     }
 }
 
-// FLAG: possibly unnecessary with SYCL USM capabilities
-// Done, check if compiles
 std::vector<std::vector<double>> move_lower_tiled_matrix_to_host(
     const std::vector<hpx::shared_future<double *>> &d_tiles,
     const std::size_t n_tile_size,
@@ -607,7 +565,7 @@ std::vector<std::vector<double>> move_lower_tiled_matrix_to_host(
     }
 }
 
-// Done, check if compiles
+
 void free_lower_tiled_matrix(
     const std::vector<hpx::shared_future<double *>> &d_tiles, 
     const std::size_t n_tiles, 

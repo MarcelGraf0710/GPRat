@@ -333,8 +333,6 @@ void compute_gemm_of_invK_y(
     {
         for (std::size_t j = 0; j < n_tiles; ++j)
         {
-            // queue = sycl_device.next_queue();
-
             ft_alpha[i] = hpx::dataflow(
                 hpx::unwrapping(&gemv),
                 ft_invK[i * n_tiles + j],
@@ -379,9 +377,6 @@ void symmetric_matrix_matrix_tiled(
     gprat::SYCL_DEVICE &sycl_device
 )
 {
-    std::cout << "[gprat::sycl_backend::symmetric_matrix_matrix_tiled] Starting symmetric tiled matrix-matrix multiplication. " << std::endl;
-    std::cout << "[gprat::sycl_backend::symmetric_matrix_matrix_tiled] n_tile_size: " << n_tile_size << ", m_tile_size: " << m_tile_size << ", n_tiles: " << n_tiles << ", m_tiles: " << m_tiles << std::endl;
-
     for (std::size_t c = 0; c < m_tiles; ++c)
     {
         for (std::size_t k = 0; k < m_tiles; ++k)
@@ -405,7 +400,6 @@ void symmetric_matrix_matrix_tiled(
     }
 }
 
-// FIXME
 void vector_difference_tiled(
     std::vector<hpx::shared_future<double *>> &ft_priorK,
     std::vector<hpx::shared_future<double *>> &ft_inter,
@@ -417,8 +411,6 @@ void vector_difference_tiled(
 {
     for (std::size_t i = 0; i < m_tiles; i++)
     {
-        // FIXME:
-        //ft_vector[i] = hpx::dataflow([&]() { return diag_posterior(ft_priorK[i], ft_inter[i], m_tile_size, std::ref(sycl_device)); } );
         ft_vector[i] = hpx::dataflow(hpx::unwrapping(&diag_posterior), ft_priorK[i], ft_inter[i], m_tile_size);
     }
 }

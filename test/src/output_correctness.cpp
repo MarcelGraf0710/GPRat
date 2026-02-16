@@ -519,8 +519,6 @@ TEST_CASE("GP SYCL results match known-good values (no loss)", "[integration][sy
     }
 
     const std::string root = get_data_directory();
-    std::cout << "\033[33mGot root directory. Identified it as :::" << root << " :::\033[0m" << std::endl;
-    system("pwd");
 
     const std::string train = root + "/data_1024/training_input.txt";
     const std::string out = root + "/data_1024/training_output.txt";
