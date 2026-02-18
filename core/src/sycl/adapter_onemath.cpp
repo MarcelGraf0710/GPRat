@@ -145,6 +145,40 @@ gemm(sycl::queue queue,
     //   = op(B) * op(A) - C
     // for inverted ordering of matrices A, B
 
+    std::cout << "[adapter_onemath.cpp] gemm : HAMMERTIME" << std::endl;
+    std::vector<double> test_vector(M * N, -1.0);
+    auto copy_process = queue.memcpy(test_vector.data(), f_A, test_vector.size() * sizeof(double));
+    copy_process.wait();
+    std::cout << "[adapter_onemath.cpp] gemm : Test vector has length " << test_vector.size() << "\n";
+    for (int i = 0; i < test_vector.size(); ++i)
+    {
+        std::cout << test_vector[i] << " ";
+    }
+    std::cout << "]\n";
+
+    std::cout << "[adapter_onemath.cpp] gemm : HAMMERTIME 2" << std::endl;
+    std::vector<double> x_vector(N * K, -1.0);
+    copy_process = queue.memcpy(x_vector.data(), f_B, x_vector.size() * sizeof(double));
+    copy_process.wait();
+    std::cout << "[adapter_onemath.cpp] gemm : X vector has length " << x_vector.size() << "\n";
+    for (int i = 0; i < x_vector.size(); ++i)
+    {
+        std::cout << x_vector[i] << " ";
+    }
+    std::cout << "]\n";
+
+    std::cout << "[adapter_onemath.cpp] gemm : HAMMERTIME 3" << std::endl;
+    std::vector<double> y_vector(N * M, -1.0);
+    copy_process = queue.memcpy(y_vector.data(), f_C, y_vector.size() * sizeof(double));
+    copy_process.wait();
+    std::cout << "[adapter_onemath.cpp] gemm : Y vector has length " << y_vector.size() << "\n";
+    for (int i = 0; i < y_vector.size(); ++i)
+    {
+        std::cout << y_vector[i] << " ";
+    }
+    std::cout << "]\n";
+
+
     oneapi::math::blas::column_major::gemm(
         queue,
         is_B_transposed,
@@ -262,8 +296,8 @@ gemv(sycl::queue queue,
      const oneapi::math::transpose is_A_transposed)
 {
     // GEMV constants
-    const double alpha_value = alpha;
-    const double beta = 1.0;
+    // const double alpha_value = alpha;
+    // const double beta = 1.0;
 
     // row-major GEMV
     // y = alpha * op(A) * x + beta * y
@@ -275,21 +309,60 @@ gemv(sycl::queue queue,
     // column-major cuBLAS GEMV for row-major stored A (and x,y)
     // for op: opposite of transpose_A
 
+    // std::cout << "M = " << M << ", N = " << N 
+    //       << ", lda = " << N 
+    //       << ", incx = 1, incy = 1" << std::endl;
+
+    // std::cout << "[adapter_onemath.cpp] gemv : HAMMERTIME" << std::endl;
+    // std::vector<double> test_vector(M * N, -1.0);
+    // auto copy_process = queue.memcpy(test_vector.data(), f_A, test_vector.size() * sizeof(double));
+    // copy_process.wait();
+    // std::cout << "[adapter_onemath.cpp] gemv : Test vector has length " << test_vector.size() << "\n";
+    // for (int i = 0; i < test_vector.size(); ++i)
+    // {
+    //     std::cout << test_vector[i] << " ";
+    // }
+    // std::cout << "]\n";
+
+    // std::cout << "[adapter_onemath.cpp] gemv : HAMMERTIME 2" << std::endl;
+    // std::vector<double> x_vector(32, -1.0);
+    // copy_process = queue.memcpy(x_vector.data(), f_x, x_vector.size() * sizeof(double));
+    // copy_process.wait();
+    // std::cout << "[adapter_onemath.cpp] gemv : X vector has length " << x_vector.size() << "\n";
+    // for (int i = 0; i < x_vector.size(); ++i)
+    // {
+    //     std::cout << x_vector[i] << " ";
+    // }
+    // std::cout << "]\n";
+
+    // std::cout << "[adapter_onemath.cpp] gemv : HAMMERTIME 3" << std::endl;
+    // std::vector<double> y_vector(32, -1.0);
+    // copy_process = queue.memcpy(y_vector.data(), f_y, y_vector.size() * sizeof(double));
+    // copy_process.wait();
+    // std::cout << "[adapter_onemath.cpp] gemv : Y vector has length " << y_vector.size() << "\n";
+    // for (int i = 0; i < y_vector.size(); ++i)
+    // {
+    //     std::cout << y_vector[i] << " ";
+    // }
+    // std::cout << "]\n";
+
+    queue.wait();
+
     oneapi::math::blas::column_major::gemv(
         queue,
         invert_transpose_operator(is_A_transposed),
         static_cast<std::int64_t>(N),
         static_cast<std::int64_t>(M),
-        alpha_value,
+        alpha,
         f_A,
         static_cast<std::int64_t>(N),
         f_x,
         1,
-        beta,
+        1.0,
         f_y,
         1);
 
-    // queue.wait();
+    queue.wait();
 
     return f_y;
 }

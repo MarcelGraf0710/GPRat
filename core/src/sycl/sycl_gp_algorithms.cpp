@@ -237,7 +237,7 @@ gen_tile_output(
 
         sycl::queue queue = sycl_device.next_queue();
 
-        d_tile = sycl::malloc_device<gprat::sycl_backend::real_t>(n_tile_size * n_tile_size, queue);
+        d_tile = sycl::malloc_device<gprat::sycl_backend::real_t>(n_tile_size, queue);
         
         auto event = queue.submit
         (

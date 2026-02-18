@@ -290,7 +290,7 @@ struct SYCL_DEVICE : public Target
      *
      * @return SYCL queue
      */
-    sycl::queue next_queue();
+    sycl::queue &next_queue();
 
     /**
      * @brief Synchronizes the collection of SYCL queues.

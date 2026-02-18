@@ -221,7 +221,7 @@ void SYCL_DEVICE::destroy()
     }
 }
 
-sycl::queue SYCL_DEVICE::next_queue()
+sycl::queue &SYCL_DEVICE::next_queue()
 {
     return queues[static_cast<std::size_t>(i_queue++) % static_cast<std::size_t>(n_queues)];
 }
