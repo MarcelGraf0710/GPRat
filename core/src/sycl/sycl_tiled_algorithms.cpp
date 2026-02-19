@@ -156,10 +156,24 @@ void forward_solve_tiled(
             //     -1,
             //     oneapi::math::transpose::nontrans);
 
-            std::cout << "Forward solve: k = " << k << ", m = " << m << std::endl;
-
             test1 = ft_rhs[m].get();
             test2 = ft_tiles[m * n_tiles + k].get();
+
+            // std::vector<double> test_vector(n_tile_size * n_tile_size, -1.0);
+            // auto copy_process = gemv_queue.memcpy(test2, test_vector.data(), test_vector.size() * sizeof(double));
+            // copy_process.wait();
+
+            // double *vector1_imitate = sycl::malloc_device<gprat::sycl_backend::real_t>(n_tile_size, gemv_queue);
+
+            // std::vector<double> test1_vector(n_tile_size, -2.0);
+            // copy_process = gemv_queue.memcpy(vector1_imitate, test1_vector.data(), test1_vector.size() * sizeof(double));
+            // copy_process.wait();
+
+            // double *vector2_imitate = sycl::malloc_device<gprat::sycl_backend::real_t>(n_tile_size, gemv_queue);
+
+            // std::vector<double> test2_vector(n_tile_size, -3.0);
+            // copy_process = gemv_queue.memcpy(vector2_imitate, test2_vector.data(), test2_vector.size() * sizeof(double));
+            // copy_process.wait();
 
             result_gemv = gemv(
                 gemv_queue, 
@@ -295,7 +309,7 @@ void forward_solve_tiled_matrix(
                 //     oneapi::math::transpose::nontrans
                 // );
 
-                std::cout << "Forward solve tiled matrix: c = " << c << ", k = " << k << ", m = " << m << std::endl;
+                // std::cout << "Forward solve tiled matrix: c = " << c << ", k = " << k << ", m = " << m << std::endl;
                 result_gemm = gemm(
                     sycl_device.next_queue(), 
                     ft_tiles[m * n_tiles + k].get(), 

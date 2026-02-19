@@ -145,38 +145,38 @@ gemm(sycl::queue queue,
     //   = op(B) * op(A) - C
     // for inverted ordering of matrices A, B
 
-    std::cout << "[adapter_onemath.cpp] gemm : HAMMERTIME" << std::endl;
-    std::vector<double> test_vector(M * N, -1.0);
-    auto copy_process = queue.memcpy(test_vector.data(), f_A, test_vector.size() * sizeof(double));
-    copy_process.wait();
-    std::cout << "[adapter_onemath.cpp] gemm : Test vector has length " << test_vector.size() << "\n";
-    for (int i = 0; i < test_vector.size(); ++i)
-    {
-        std::cout << test_vector[i] << " ";
-    }
-    std::cout << "]\n";
+    // std::cout << "[adapter_onemath.cpp] gemm : HAMMERTIME" << std::endl;
+    // std::vector<double> test_vector(M * N, -1.0);
+    // auto copy_process = queue.memcpy(test_vector.data(), f_A, test_vector.size() * sizeof(double));
+    // copy_process.wait();
+    // std::cout << "[adapter_onemath.cpp] gemm : Test vector has length " << test_vector.size() << "\n";
+    // for (int i = 0; i < test_vector.size(); ++i)
+    // {
+    //     std::cout << test_vector[i] << " ";
+    // }
+    // std::cout << "]\n";
 
-    std::cout << "[adapter_onemath.cpp] gemm : HAMMERTIME 2" << std::endl;
-    std::vector<double> x_vector(N * K, -1.0);
-    copy_process = queue.memcpy(x_vector.data(), f_B, x_vector.size() * sizeof(double));
-    copy_process.wait();
-    std::cout << "[adapter_onemath.cpp] gemm : X vector has length " << x_vector.size() << "\n";
-    for (int i = 0; i < x_vector.size(); ++i)
-    {
-        std::cout << x_vector[i] << " ";
-    }
-    std::cout << "]\n";
+    // std::cout << "[adapter_onemath.cpp] gemm : HAMMERTIME 2" << std::endl;
+    // std::vector<double> x_vector(N * K, -1.0);
+    // copy_process = queue.memcpy(x_vector.data(), f_B, x_vector.size() * sizeof(double));
+    // copy_process.wait();
+    // std::cout << "[adapter_onemath.cpp] gemm : X vector has length " << x_vector.size() << "\n";
+    // for (int i = 0; i < x_vector.size(); ++i)
+    // {
+    //     std::cout << x_vector[i] << " ";
+    // }
+    // std::cout << "]\n";
 
-    std::cout << "[adapter_onemath.cpp] gemm : HAMMERTIME 3" << std::endl;
-    std::vector<double> y_vector(N * M, -1.0);
-    copy_process = queue.memcpy(y_vector.data(), f_C, y_vector.size() * sizeof(double));
-    copy_process.wait();
-    std::cout << "[adapter_onemath.cpp] gemm : Y vector has length " << y_vector.size() << "\n";
-    for (int i = 0; i < y_vector.size(); ++i)
-    {
-        std::cout << y_vector[i] << " ";
-    }
-    std::cout << "]\n";
+    // std::cout << "[adapter_onemath.cpp] gemm : HAMMERTIME 3" << std::endl;
+    // std::vector<double> y_vector(N * M, -1.0);
+    // copy_process = queue.memcpy(y_vector.data(), f_C, y_vector.size() * sizeof(double));
+    // copy_process.wait();
+    // std::cout << "[adapter_onemath.cpp] gemm : Y vector has length " << y_vector.size() << "\n";
+    // for (int i = 0; i < y_vector.size(); ++i)
+    // {
+    //     std::cout << y_vector[i] << " ";
+    // }
+    // std::cout << "]\n";
 
 
     oneapi::math::blas::column_major::gemm(

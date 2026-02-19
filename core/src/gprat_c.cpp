@@ -165,6 +165,7 @@ std::vector<double> GP::get_training_output() const { return training_output_; }
 // predict ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 std::vector<double> GP::predict(const std::vector<double> &test_input, int m_tiles, int m_tile_size)
 {
+    #if !GPRAT_WITH_SYCL
     return hpx::async([this, &test_input, m_tiles, m_tile_size]()
     {
 
@@ -198,8 +199,23 @@ std::vector<double> GP::predict(const std::vector<double> &test_input, int m_til
                 n_reg);
         }
         // ---- !CUDA -------------------------------------------------------------------------------------------------
+        #else
+        // ---- Host --------------------------------------------------------------------------------------------------
+        return cpu::predict(
+            training_input_,
+            training_output_,
+            test_input,
+            kernel_params,
+            n_tiles_,
+            n_tile_size_,
+            m_tiles,
+            m_tile_size,
+            n_reg);
+        // ---- !Host -------------------------------------------------------------------------------------------------
+        #endif
 
-        #elif GPRAT_WITH_SYCL
+    }).get();
+    #else
         // ---- SYCL --------------------------------------------------------------------------------------------------
         if (!target_->is_cpu())
         {
@@ -229,29 +245,14 @@ std::vector<double> GP::predict(const std::vector<double> &test_input, int m_til
                 n_reg);
         }
         // ---- !SYCL -------------------------------------------------------------------------------------------------
-        
-        #else
-        // ---- Host --------------------------------------------------------------------------------------------------
-        return cpu::predict(
-            training_input_,
-            training_output_,
-            test_input,
-            kernel_params,
-            n_tiles_,
-            n_tile_size_,
-            m_tiles,
-            m_tile_size,
-            n_reg);
-        // ---- !Host -------------------------------------------------------------------------------------------------
-        #endif
-
-    }).get();
+    #endif
 }
 
 // predict_with_uncertainty ///////////////////////////////////////////////////////////////////////////////////////////
 std::vector<std::vector<double>>
 GP::predict_with_uncertainty(const std::vector<double> &test_input, int m_tiles, int m_tile_size)
 {
+    #if !GPRAT_WITH_SYCL
     return hpx::async([this, &test_input, m_tiles, m_tile_size]()
     {
         #if GPRAT_WITH_CUDA
@@ -284,11 +285,95 @@ GP::predict_with_uncertainty(const std::vector<double> &test_input, int m_tiles,
                 n_reg);
         }
         // ---- !CUDA -------------------------------------------------------------------------------------------------
+        #else
+        // ---- Host --------------------------------------------------------------------------------------------------
+            return cpu::predict_with_uncertainty(
+                training_input_,
+                training_output_,
+                test_input,
+                kernel_params,
+                n_tiles_,
+                n_tile_size_,
+                m_tiles,
+                m_tile_size,
+                n_reg);
+        // ---- !Host -------------------------------------------------------------------------------------------------
+        #endif
 
-        #elif GPRAT_WITH_SYCL
+        }).get();
+    #else
         // ---- SYCL --------------------------------------------------------------------------------------------------
         if (!target_->is_cpu())
         {
+                // ////// MWE STARTS HERE
+
+                // sycl::queue queue_q{sycl::gpu_selector_v};
+
+                // // queue_q.wait();
+
+                // // Example: 3x3 matrix
+                // const std::int64_t t = 3;
+                // const std::int64_t s = 3;
+                // const std::int64_t lda = t; // leading dimension
+                // const std::int64_t incx = 1;
+                // const std::int64_t incy = 1;
+
+                // // Host data
+                // std::vector<double> A = {1.0, 4.0, 7.0,  // column-major layout
+                //                         2.0, 5.0, 8.0,
+                //                         3.0, 6.0, 9.0};
+                // std::vector<double> x = {1.0, 2.0, 3.0};
+                // std::vector<double> y = {0.5, 1.0, 1.5};
+
+                // double alpha = 2.0;
+                // double beta  = 0.5;
+
+                // // Device buffers
+                // double *d_A = sycl::malloc_device<double>(A.size(), queue_q);
+                // double *d_x = sycl::malloc_device<double>(x.size(), queue_q);
+                // double *d_y = sycl::malloc_device<double>(y.size(), queue_q);
+
+                // // Copy data to device
+                // auto event1 = queue_q.memcpy(d_A, A.data(), sizeof(double) * A.size());
+                // auto event2 = queue_q.memcpy(d_x, x.data(), sizeof(double) * x.size());
+                // auto event3 = queue_q.memcpy(d_y, y.data(), sizeof(double) * y.size());
+                // // queue_q.wait();
+                // event1.wait();
+                // event2.wait();
+                // event3.wait();
+
+                // // Perform GEMV: y = alpha * A * x + beta * y
+                // sycl::event e = oneapi::math::blas::column_major::gemv(queue_q,
+                //                         oneapi::math::transpose::nontrans,
+                //                         t,
+                //                         s,
+                //                         alpha,
+                //                         d_A,
+                //                         lda,
+                //                         d_x,
+                //                         incx,
+                //                         beta,
+                //                         d_y,
+                //                         incy);
+
+                // // Wait for computation to finish
+                // e.wait();
+
+                // // Copy result back to host
+                // queue_q.memcpy(y.data(), d_y, sizeof(double) * y.size()).wait();
+
+                // // Print result
+                // std::cout << "Result y:\n";
+                // for (double v : y) std::cout << v << " ";
+                // std::cout << "\n";
+
+                // // Free device memory
+                // sycl::free(d_A, queue_q);
+                // sycl::free(d_x, queue_q);
+                // sycl::free(d_y, queue_q);
+
+                // ////// MWE ENDS HERE
+
             return sycl_backend::predict_with_uncertainty(
                 training_input_,
                 training_output_,
@@ -315,29 +400,14 @@ GP::predict_with_uncertainty(const std::vector<double> &test_input, int m_tiles,
                 n_reg);
         }
         // ---- !SYCL -------------------------------------------------------------------------------------------------
-
-        #else
-        // ---- Host --------------------------------------------------------------------------------------------------
-            return cpu::predict_with_uncertainty(
-                training_input_,
-                training_output_,
-                test_input,
-                kernel_params,
-                n_tiles_,
-                n_tile_size_,
-                m_tiles,
-                m_tile_size,
-                n_reg);
-        // ---- !Host -------------------------------------------------------------------------------------------------
-        #endif
-
-        }).get();
+    #endif
 }
 
 // predict_with_full_cov //////////////////////////////////////////////////////////////////////////////////////////////
 std::vector<std::vector<double>>
 GP::predict_with_full_cov(const std::vector<double> &test_input, int m_tiles, int m_tile_size)
 {
+    #if !GPRAT_WITH_SYCL
     return hpx::async([this, &test_input, m_tiles, m_tile_size]()
     {
         #if GPRAT_WITH_CUDA
@@ -370,8 +440,23 @@ GP::predict_with_full_cov(const std::vector<double> &test_input, int m_tiles, in
                 n_reg);
         }
         // ---- !CUDA -------------------------------------------------------------------------------------------------
+        #else
+        // ---- Host --------------------------------------------------------------------------------------------------
+        return cpu::predict_with_full_cov(
+            training_input_,
+            training_output_,
+            test_input,
+            kernel_params,
+            n_tiles_,
+            n_tile_size_,
+            m_tiles,
+            m_tile_size,
+            n_reg);
+        // ---- !Host -------------------------------------------------------------------------------------------------
+        #endif
 
-        #elif GPRAT_WITH_SYCL
+    }).get();
+    #else
         // ---- SYCL --------------------------------------------------------------------------------------------------
         if (!target_->is_cpu())
         {
@@ -401,23 +486,7 @@ GP::predict_with_full_cov(const std::vector<double> &test_input, int m_tiles, in
                 n_reg);
         }
         // ---- !SYCL -------------------------------------------------------------------------------------------------
-
-        #else
-        // ---- Host --------------------------------------------------------------------------------------------------
-        return cpu::predict_with_full_cov(
-            training_input_,
-            training_output_,
-            test_input,
-            kernel_params,
-            n_tiles_,
-            n_tile_size_,
-            m_tiles,
-            m_tile_size,
-            n_reg);
-        // ---- !Host -------------------------------------------------------------------------------------------------
         #endif
-
-    }).get();
 }
 
 // optimize ///////////////////////////////////////////////////////////////////////////////////////////////////////////

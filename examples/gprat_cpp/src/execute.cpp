@@ -39,7 +39,7 @@ namespace gprat::example
 
     // SYCL test settings
     constexpr int device_id = 0;
-    constexpr int n_queues = 8;
+    constexpr int n_queues = 1;
 
     // Save parameters and times to a .txt file with a header
     void append_to_output_file(
@@ -266,7 +266,7 @@ int main(int argc, char *argv[])
         // Create new argc and argv to include the --hpx:threads argument
         std::vector<std::string> args(argv, argv + argc);
         if (use_gpu || use_sycl) { args.erase(args.begin() + 1); }
-        args.push_back("--hpx:threads=" + std::to_string(core)); // changing std::to_string(core) to std::to_string(1) works wonders
+        args.push_back("--hpx:threads=" + std::to_string(1)); // changing std::to_string(core) to std::to_string(1) works wonders
 
         // Convert the arguments to char* array
         std::vector<char *> cstr_args;
