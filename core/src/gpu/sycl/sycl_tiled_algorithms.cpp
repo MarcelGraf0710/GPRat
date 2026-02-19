@@ -1,7 +1,7 @@
-#include "sycl/sycl_tiled_algorithms.hpp"
-#include "sycl/adapter_onemath.hpp"
-#include "sycl/sycl_gp_optimizer.hpp"
-#include "sycl/sycl_gp_uncertainty.hpp"
+#include "gpu/sycl/sycl_tiled_algorithms.hpp"
+#include "gpu/sycl/adapter_onemath.hpp"
+#include "gpu/sycl/sycl_gp_optimizer.hpp"
+#include "gpu/sycl/sycl_gp_uncertainty.hpp"
 
 #include <hpx/algorithm.hpp>
 

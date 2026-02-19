@@ -9,7 +9,7 @@ using hpx::cuda::experimental::check_cuda_error;
 #endif
 
 #if GPRAT_WITH_SYCL
-#include "sycl/sycl_utils.hpp"
+#include "gpu/sycl/sycl_utils.hpp"
 #endif
 
 namespace gprat

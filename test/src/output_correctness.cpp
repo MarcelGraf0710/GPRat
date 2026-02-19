@@ -169,7 +169,7 @@ constexpr int n_streams = 1;
 
 // SYCL test settings
 constexpr int device_id = 0;
-constexpr int n_queues = 1;
+constexpr int n_queues = 8;
 
 /**
  * @brief Generates results for a test configuration using the CPU for computations.

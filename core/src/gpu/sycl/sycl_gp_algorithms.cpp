@@ -1,10 +1,10 @@
 #include "gp_kernels.hpp"
 #include "target.hpp"
 
-#include "sycl/sycl_gp_algorithms.hpp"
-#include "sycl/sycl_kernels.hpp"
-#include "sycl/sycl_utils.hpp"
-#include "sycl/sycl_gp_optimizer.hpp"
+#include "gpu/sycl/sycl_gp_algorithms.hpp"
+#include "gpu/sycl/sycl_kernels.hpp"
+#include "gpu/sycl/sycl_utils.hpp"
+#include "gpu/sycl/sycl_gp_optimizer.hpp"
 
 #include <hpx/algorithm.hpp>
 

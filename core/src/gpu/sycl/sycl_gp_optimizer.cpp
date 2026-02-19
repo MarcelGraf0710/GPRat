@@ -1,7 +1,7 @@
-#include "sycl/sycl_gp_optimizer.hpp"
-#include "sycl/adapter_onemath.hpp"
-#include "sycl/sycl_kernels.hpp"
-#include "sycl/sycl_utils.hpp"
+#include "gpu/sycl/sycl_gp_optimizer.hpp"
+#include "gpu/sycl/adapter_onemath.hpp"
+#include "gpu/sycl/sycl_kernels.hpp"
+#include "gpu/sycl/sycl_utils.hpp"
 
 namespace gprat::sycl_backend
 {

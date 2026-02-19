@@ -173,16 +173,16 @@
       }
     },
     {
-      "name": "dev-linux-gpu",
-      "binaryDir": "${sourceDir}/build/dev-linux-gpu",
+      "name": "dev-linux-cuda",
+      "binaryDir": "${sourceDir}/build/dev-linux-cuda",
       "inherits": ["dev-linux"],
       "cacheVariables": {
         "GPRAT_WITH_CUDA": "ON"
       }
     },
     {
-      "name": "release-linux-gpu",
-      "binaryDir": "${sourceDir}/build/release-linux-gpu",
+      "name": "release-linux-cuda",
+      "binaryDir": "${sourceDir}/build/release-linux-cuda",
       "inherits": ["release-linux"],
       "cacheVariables": {
         "GPRAT_WITH_CUDA": "ON"
@@ -217,13 +217,13 @@
       "configuration": "Release"
     },
     {
-      "name": "dev-linux-gpu",
-      "configurePreset": "dev-linux-gpu",
+      "name": "dev-linux-cuda",
+      "configurePreset": "dev-linux-cuda",
       "configuration": "Debug"
     },
     {
-      "name": "release-linux-gpu",
-      "configurePreset": "release-linux-gpu",
+      "name": "release-linux-cuda",
+      "configurePreset": "release-linux-cuda",
       "configuration": "Release"
     },
     {
@@ -261,8 +261,8 @@
       }
     },
     {
-      "name": "dev-linux-gpu",
-      "configurePreset": "dev-linux-gpu",
+      "name": "dev-linux-cuda",
+      "configurePreset": "dev-linux-cuda",
       "configuration": "Debug",
       "output": {
         "outputOnFailure": true
@@ -272,8 +272,8 @@
       }
     },
     {
-      "name": "release-linux-gpu",
-      "configurePreset": "release-linux-gpu",
+      "name": "release-linux-cuda",
+      "configurePreset": "release-linux-cuda",
       "configuration": "Release",
       "output": {
         "outputOnFailure": true

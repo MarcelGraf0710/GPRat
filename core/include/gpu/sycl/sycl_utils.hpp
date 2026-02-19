@@ -3,7 +3,7 @@
 
 #define WORK_GROUP_SIZE 16
 
-#include "../target.hpp"
+#include "target.hpp"
 #include <sycl/sycl.hpp>
 #include <hpx/algorithm.hpp>
 

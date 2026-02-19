@@ -1,9 +1,9 @@
-#include "sycl/sycl_gp_functions.hpp"
+#include "gpu/sycl/sycl_gp_functions.hpp"
 
 #include "gp_kernels.hpp"
-#include "sycl/sycl_utils.hpp"
-#include "sycl/sycl_gp_algorithms.hpp"
-#include "sycl/sycl_tiled_algorithms.hpp"
+#include "gpu/sycl/sycl_utils.hpp"
+#include "gpu/sycl/sycl_gp_algorithms.hpp"
+#include "gpu/sycl/sycl_tiled_algorithms.hpp"
 
 #include "target.hpp"
 

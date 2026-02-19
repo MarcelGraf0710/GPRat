@@ -9,7 +9,7 @@
 #include <vector>
 
 #if GPRAT_WITH_SYCL
-#include "sycl/sycl_utils.hpp"
+#include "gpu/sycl/sycl_utils.hpp"
 #endif
 
 // namespace for GPRat library entities

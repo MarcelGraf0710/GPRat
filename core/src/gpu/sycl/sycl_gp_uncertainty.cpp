@@ -1,7 +1,7 @@
 // GPRat
 #include "target.hpp"
-#include "sycl/sycl_gp_uncertainty.hpp"
-#include "sycl/sycl_utils.hpp"
+#include "gpu/sycl/sycl_gp_uncertainty.hpp"
+#include "gpu/sycl/sycl_utils.hpp"
 
 // oneMath
 #include <oneapi/math.hpp>

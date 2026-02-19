@@ -1,14 +1,18 @@
 #!/bin/bash
-# $1: python/cpp
-# $2: cpu/gpu/sycl
-# $3: mkl
-################################################################################
+
 set -e  # Exit immediately if a command exits with a non-zero status.
 
 ################################################################################
-# Configurations
+# Parameters
+################################################################################
+# $1: python/cpp
+# $2: cpu/cuda/sycl
+# $3: release/dev
+# $4: mkl
+
 ################################################################################
 # Bindings
+################################################################################
 if [[ "$1" == "python" ]]
 then
     BINDINGS=ON
@@ -22,94 +26,169 @@ else
     exit 1
 fi
 
-# Select CMake preset
+################################################################################
+# CMake Presets
+################################################################################
 if [[ "$2" == "cpu" ]]; then
-    # Release:
-    PRESET=release-linux
-    # Debug:
-    #PRESET=dev-linux
-elif [[ "$2" == "gpu" ]]; then
-    # Release:
-    PRESET=release-linux-gpu
-    # Debug:
-    #PRESET=dev-linux-gpu
+	if [[ "$3" == "release" ]]; then
+		PRESET=release-linux
+	elif [[ "$3" == "dev" ]]; then
+		PRESET=dev-linux
+	else
+		echo "Input parameter for release or dev mode is missing. Using default: Build in Release mode"
+		PRESET=release-linux
+	fi
+elif [[ "$2" == "cuda" ]]; then
+	if [[ "$3" == "release" ]]; then
+		PRESET=release-linux-cuda
+	elif [[ "$3" == "dev" ]]; then
+		PRESET=dev-linux-cuda
+	else
+		echo "Input parameter for release or dev mode is missing. Using default: Build in Release mode"
+		PRESET=release-linux-cuda
+	fi
 elif [[ "$2" == "sycl" ]]; then
-    module use /data/scratch-simcl1/breyerml/Programs/.modulefiles
-    module load icpx
-    # Release:
-    # PRESET=release-linux-sycl
-    # Debug:
-    PRESET=dev-linux-sycl
+	if [[ "$3" == "release" ]]; then
+		PRESET=release-linux-sycl
+	elif [[ "$3" == "dev" ]]; then
+		PRESET=dev-linux-sycl
+	else
+		echo "Input parameter for release or dev mode is missing. Using default: Build in Release mode"
+		PRESET=release-linux-sycl
+	fi
 elif [[ "$2" != "cpu" ]]; then
-    echo "Input parameter is missing. Using default: Run computations on CPU in Release mode"
+    echo "Input parameter is not any of {cpu,cuda,sycl}. Using default: Run computations on CPU in Release mode"
     PRESET=release-linux
 fi
 
+################################################################################
 # Select BLAS library
-if [[ "$3" == "mkl" ]]
+################################################################################
+if [[ "$4" == "mkl" ]]
 then
     USE_MKL=ON
 else
     USE_MKL=OFF
 fi
 
-# simcl1
-# spack_destination="/scratch-simcl1/grafml/Programs/spack-fp2-simcl1n1"
-# source $spack_destination/spack/share/spack/setup-env.sh
+################################################################################
+# Developer: Pick Spack installation depending on the host
+################################################################################
 
-# pcsgs
-spack_destination="/home/grafml/spack"
-source $spack_destination/share/spack/setup-env.sh
+# Set Spack if on simcl1n1, simcl1n2, simcl1n3, or simcl1n4
+if [[ "$HOSTNAME" == "simcl1n1" || "$HOSTNAME" == "simcl1n2" || "$HOSTNAME" == "simcl1n3" || "$HOSTNAME" == "simcl1n4" ]]; then
 
+	spack_destination="/scratch-simcl1/grafml/Programs/spack-fp2-simcl1n1"
+	source $spack_destination/spack/share/spack/setup-env.sh
+
+fi
+
+# Set Spack if on psgs04
+if [[ "$HOSTNAME" == "pcsgs04" ]]; then
+
+	spack_destination="/home/grafml/spack"
+	source $spack_destination/share/spack/setup-env.sh
+
+fi
+
+################################################################################
+# Setup Compilation Requirements
+################################################################################
+
+# Assuming Spack is found
 if command -v spack &> /dev/null; then
     echo "Spack command found, checking for environments..."
 
     # Get current hostname
     HOSTNAME=$(hostname -s)
 
+	# ipvs-epyc1
     if [[ "$HOSTNAME" == "ipvs-epyc1" ]]; then
-	# Check if the gprat_cpu_gcc environment exists
+
+		# Check whether the gprat_cpu_gcc environment exists
     	if spack env list | grep -q "gprat_cpu_gcc"; then
-	   echo "Found gprat_cpu_gcc environment, activating it."
-	    module load gcc/14.2.0
-	    export CXX=g++
-	    export CC=gcc
-	    spack env activate gprat_cpu_gcc
-	    GPRAT_WITH_CUDA=OFF # whether GPRAT_WITH_CUDA is ON of OFF is irrelevant for this example
-	fi
+			echo "Found gprat_cpu_gcc environment, activating it."
+			module load gcc/14.2.0
+			export CXX=g++
+			export CC=gcc
+			spack env activate gprat_cpu_gcc
+			GPRAT_WITH_CUDA=OFF # whether GPRAT_WITH_CUDA is ON of OFF is irrelevant for this example
+		fi
+
+	# sven0 and sven1
     elif [[ "$HOSTNAME" == "sven0"  ||  "$HOSTNAME" == "sven1" ]]; then
-	#module load gcc/13.2.1
-	spack load openblas arch=linux-fedora38-riscv64
-	HPX_CMAKE=$HOME/git_workspace/build-scripts/build/hpx/lib64/cmake/HPX
-	USE_MKL=OFF
+
+		#module load gcc/13.2.1
+		spack load openblas arch=linux-fedora38-riscv64
+		HPX_CMAKE=$HOME/git_workspace/build-scripts/build/hpx/lib64/cmake/HPX
+		USE_MKL=OFF
+
+	# aarch64
     elif [[ $(uname -i) == "aarch64" ]]; then
-	spack load gcc@14.2.0
-	# Check if the gprat_cpu_arm environment exists
-	if spack env list | grep -q "gprat_cpu_arm"; then
-	    echo "Found gprat_cpu_arm environment, activating it."
-	    spack env activate gprat_cpu_arm
-	fi
-	USE_MKL=OFF
-    elif [[ "$HOSTNAME" == "simcl1n1" || "$HOSTNAME" == "simcl1n2" || "$HOSTNAME" == "simcl1n4" || "$HOSTNAME" == "pcsgs05" ]]; then
-	# Check if the gprat_gpu_clang environment exists
-	if spack env list | grep -q "gprat_gpu_clang"; then
-	    echo "Found gprat_gpu_clang environment, activating it."
-	    #module load clang/17.0.1
-	    export CXX=clang++
-	    export CC=clang
-#	    module load cuda/12.0.1
-	    spack env activate gprat_gpu_clang
-	    GPRAT_WITH_CUDA=OFF
-		GPRAT_WITH_SYCL=ON
-	fi
+
+		spack load gcc@14.2.0
+		# Check if the gprat_cpu_arm environment exists
+		if spack env list | grep -q "gprat_cpu_arm"; then
+			echo "Found gprat_cpu_arm environment, activating it."
+			spack env activate gprat_cpu_arm
+		fi
+		USE_MKL=OFF
+
+	# simcl1n1 and simcl1n2 with NVIDIA GPUs
+    elif [[ "$HOSTNAME" == "simcl1n1" || "$HOSTNAME" == "simcl1n2" ]]; then
+		
+		# Check if the gprat_gpu_clang environment exists
+		if spack env list | grep -q "gprat_gpu_clang"; then
+
+			echo "Found gprat_gpu_clang environment, activating it."
+			spack env activate gprat_gpu_clang
+
+			if [[ "$2" == "cuda" ]]; then
+				module load clang/17.0.1
+				export CXX=clang++
+				export CC=clang
+				module load cuda/12.0.1
+				GPRAT_WITH_CUDA=ON
+				GPRAT_WITH_SYCL=OFF
+			elif [[ "$2" == "sycl" ]]; then
+				echo "Please make sure that a DPC++ compiler is available in your PATH."
+				export CXX=icpx
+				export CC=icx
+				GPRAT_WITH_CUDA=OFF
+				GPRAT_WITH_SYCL=ON
+			fi
+
+		fi
+
+	# simcl1n3 with AMD GPUs
+	elif [[ "$HOSTNAME" == "simcl1n3" ]]; then
+		echo "Host simcl1n3 is currently not supported."
+
+	# simcl1n4 without GPU
+	elif [[ "$HOSTNAME" == "simcl1n4" ]]; then
+		echo "The setup for host simcl1n4 is currently under construction."
+
+	# pcsgs04 with Intel GPU
+	elif [[ "$HOSTNAME" == "pcsgs04" ]]; then
+		echo "The setup for host pcsgs04 is currently not supported."
+
+	# invalid hostnames
     else
     	echo "Hostname is $HOSTNAME — no action taken."
+
     fi
+
+# Assuming Spack is not found
 else
     echo "Spack command not found. Building example without Spack."
     # Assuming that Spack is not required on given system
 fi
 
+################################################################################
+# Set up CMake
+################################################################################
+
+# CPU build
 if [[ $PRESET == "release-linux" || $PRESET == "dev-linux" ]]; then
     cmake --preset $PRESET \
 	-DGPRAT_BUILD_BINDINGS=$BINDINGS \
@@ -118,21 +197,25 @@ if [[ $PRESET == "release-linux" || $PRESET == "dev-linux" ]]; then
 	-DHPX_DIR=$HPX_CMAKE \
 	-DGPRAT_ENABLE_FORMAT_TARGETS=OFF \
 	-DGPRAT_ENABLE_MKL=$USE_MKL
-elif [[ $PRESET == "release-linux-gpu" || $PRESET == "dev-linux-gpu" ]]; then
+
+# CUDA build
+elif [[ $PRESET == "release-linux-cuda" || $PRESET == "dev-linux-cuda" ]]; then
+
     CUDA_ARCH=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader | awk -F '.' '{print $1$2}')
 
-cmake --preset $PRESET \
-	-DGPRAT_BUILD_BINDINGS=$BINDINGS \
-	-DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
-	-DHPX_IGNORE_BOOST_COMPATIBILITY=ON \
-	-DGPRAT_ENABLE_FORMAT_TARGETS=OFF \
-    -DGPRAT_ENABLE_MKL=$USE_MKL \
-	-DCMAKE_C_COMPILER=$(which clang) \
-    -DCMAKE_CXX_COMPILER=$(which clang++) \
-    -DCMAKE_CUDA_COMPILER=$(which clang++) \
-    -DCMAKE_CUDA_FLAGS=--cuda-path=${CUDA_HOME} \
-    -DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH}
-   
+	cmake --preset $PRESET \
+		-DGPRAT_BUILD_BINDINGS=$BINDINGS \
+		-DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
+		-DHPX_IGNORE_BOOST_COMPATIBILITY=ON \
+		-DGPRAT_ENABLE_FORMAT_TARGETS=OFF \
+		-DGPRAT_ENABLE_MKL=$USE_MKL \
+		-DCMAKE_C_COMPILER=$(which clang) \
+		-DCMAKE_CXX_COMPILER=$(which clang++) \
+		-DCMAKE_CUDA_COMPILER=$(which clang++) \
+		-DCMAKE_CUDA_FLAGS=--cuda-path=${CUDA_HOME} \
+		-DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCH}
+
+# SYCL build
 elif [[ $PRESET == "release-linux-sycl" || $PRESET == "dev-linux-sycl" ]]; then
     CUDA_ARCH=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader | awk -F '.' '{print $1$2}')
 
@@ -156,7 +239,8 @@ fi
 cmake --build --preset $PRESET -- VERBOSE=1 -j
 cmake --install build/$PRESET
 
-#cd build
-#./$PRESET/test/GPRat_test_output_correctness
-#cd build/$PRESET
-#ctest --output-on-failure --no-tests=ignore -C Release -j 2
+################################################################################
+# Run tests
+################################################################################
+cd build/$PRESET
+ctest --output-on-failure --no-tests=ignore -C Release -j 2

@@ -9,7 +9,7 @@
 #endif
 
 #if GPRAT_WITH_SYCL
-#include "sycl/sycl_gp_functions.hpp"
+#include "gpu/sycl/sycl_gp_functions.hpp"
 #endif
 
 // namespace for GPRat library entities

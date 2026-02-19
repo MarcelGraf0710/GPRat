@@ -35,12 +35,12 @@ if(GPRAT_WITH_SYCL)
   list(
     APPEND
     SOURCE_FILES
-    src/sycl/adapter_onemath.cpp
-    src/sycl/sycl_gp_algorithms.cpp
-    src/sycl/sycl_gp_functions.cpp
-    src/sycl/sycl_gp_optimizer.cpp
-    src/sycl/sycl_gp_uncertainty.cpp
-    src/sycl/sycl_tiled_algorithms.cpp
+    src/gpu/sycl/adapter_onemath.cpp
+    src/gpu/sycl/sycl_gp_algorithms.cpp
+    src/gpu/sycl/sycl_gp_functions.cpp
+    src/gpu/sycl/sycl_gp_optimizer.cpp
+    src/gpu/sycl/sycl_gp_uncertainty.cpp
+    src/gpu/sycl/sycl_tiled_algorithms.cpp
     )
 endif()
 #src/sycl/sycl_kernels.cpp
