@@ -4,15 +4,8 @@
 #include <fstream>
 #include <iostream>
 
-// #include <hpx/hpx_main.hpp>
-
 // Test 
-#include <hpx/include/async.hpp>
-
-#if GPRAT_WITH_SYCL
-    #include <sycl/sycl.hpp>
-    #include <oneapi/math.hpp>
-#endif
+// #include <hpx/include/async.hpp>
 
 namespace gprat::example
 {
@@ -67,8 +60,6 @@ namespace gprat::example
     }
 
     void example_cpu(
-        int new_argc,
-        char **new_argv,
         Runtimes &runtimes,
         std::string &target,
         std::pair<int, int> &result,
@@ -93,9 +84,6 @@ namespace gprat::example
                             trainable);
         auto end_init = std::chrono::high_resolution_clock::now();
         runtimes.init = end_init - start_init;
-
-        // Initialize HPX with the new arguments, don't run hpx_main
-        // utils::start_hpx_runtime(new_argc, new_argv);
 
         auto start_cholesky = std::chrono::high_resolution_clock::now();
         std::vector<std::vector<double>> cholesky_cpu = gp_cpu.cholesky();
@@ -126,8 +114,6 @@ namespace gprat::example
     }
 
     void example_cuda_gpu(
-        int new_argc,
-        char **new_argv,
         Runtimes &runtimes,
         std::string &target,
         std::pair<int, int> &result,
@@ -153,8 +139,6 @@ namespace gprat::example
             2);
         auto end_init = std::chrono::high_resolution_clock::now();
         runtimes.init = end_init - start_init;
-
-        // utils::start_hpx_runtime(new_argc, new_argv);
 
         auto start_cholesky = std::chrono::high_resolution_clock::now();
         std::vector<std::vector<double>> cholesky_gpu = gp_gpu.cholesky();
@@ -182,11 +166,7 @@ namespace gprat::example
         runtimes.pred = end_pred - start_pred;
     }
 
-#if GPRAT_WITH_SYCL
-
     void example_sycl(
-        int new_argc,
-        char **new_argv,
         Runtimes &runtimes,
         std::string &target,
         std::pair<int, int> &result,
@@ -197,8 +177,6 @@ namespace gprat::example
         std::vector<bool> trainable
     )
     {
-        // utils::start_hpx_runtime(new_argc, new_argv);
-
         target = "sycl";
 
         auto start_init = std::chrono::high_resolution_clock::now();
@@ -242,8 +220,6 @@ namespace gprat::example
         runtimes.pred = end_pred - start_pred;
     }
 
-#endif
-
 } // ! namespace gprat::example
 
 int main(int argc, char *argv[])
@@ -255,9 +231,6 @@ int main(int argc, char *argv[])
     bool use_gpu =
         utils::compiled_with_cuda() && gprat::gpu_count() > 0 && argc > 1 && std::strcmp(argv[1], "--use_gpu") == 0;
 
-    std::cout << "gpu_count: " << gprat::gpu_count() << std::endl;
-    std::cout << "argc: " << argc << std::endl;
-
     bool use_sycl =
         utils::compiled_with_sycl() && gprat::gpu_count() > 0 && argc > 1 && std::strcmp(argv[1], "--use_sycl") == 0;
 
@@ -266,7 +239,7 @@ int main(int argc, char *argv[])
         // Create new argc and argv to include the --hpx:threads argument
         std::vector<std::string> args(argv, argv + argc);
         if (use_gpu || use_sycl) { args.erase(args.begin() + 1); }
-        args.push_back("--hpx:threads=" + std::to_string(core)); // changing std::to_string(core) to std::to_string(1) works wonders
+        args.push_back("--hpx:threads=" + std::to_string(core));
 
         // Convert the arguments to char* array
         std::vector<char *> cstr_args;
@@ -298,10 +271,7 @@ int main(int argc, char *argv[])
 
                 if (!use_gpu && !use_sycl)
                 {
-                    std::cout << "Running CPU example with " << core << " cores" << std::endl;
                     gprat::example::example_cpu(
-                        new_argc,
-                        new_argv,
                         runtimes,
                         target,
                         result,
@@ -314,10 +284,7 @@ int main(int argc, char *argv[])
                 }
                 else if (use_gpu)
                 {
-                    std::cout << "Running CUDA GPU example with " << core << " cores" << std::endl;
                     gprat::example::example_cuda_gpu(
-                        new_argc,
-                        new_argv,
                         runtimes,
                         target,
                         result,
@@ -330,11 +297,7 @@ int main(int argc, char *argv[])
                 }
                 else if(use_sycl)
                 {
-                    std::cout << "Running SYCL example with device_id: " << gprat::example::device_id << " and n_queues: " << gprat::example::n_queues << std::endl;
-                    #if GPRAT_WITH_SYCL
                     gprat::example::example_sycl(
-                        new_argc,
-                        new_argv,
                         runtimes,
                         target,
                         result,
@@ -344,11 +307,7 @@ int main(int argc, char *argv[])
                         tile_size,
                         trainable 
                     );   
-                    #endif
                 }
-
-                // Stop the HPX runtime
-                // utils::stop_hpx_runtime();
 
                 auto end_total = std::chrono::high_resolution_clock::now();
                 auto total_time = end_total - start_total;
@@ -359,8 +318,6 @@ int main(int argc, char *argv[])
 
         utils::stop_hpx_runtime();
     }
-
-    // utils::stop_hpx_runtime();
 
     return 0;
 }

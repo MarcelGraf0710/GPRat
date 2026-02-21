@@ -107,8 +107,6 @@ kernel_params(kernel_hyperparams[0], kernel_hyperparams[1], kernel_hyperparams[2
 
 }
 
-
-#if GPRAT_WITH_SYCL
 // SYCL-type constructor of class GP //////////////////////////////////////////////////////////////
 GP::GP(
   std::vector<double> input,
@@ -144,7 +142,6 @@ kernel_params(kernel_hyperparams[0], kernel_hyperparams[1], kernel_hyperparams[2
         "Remove argument parameters to perform computations on the CPU.");
     #endif
 }
-#endif
 
 std::string GP::repr() const
 {

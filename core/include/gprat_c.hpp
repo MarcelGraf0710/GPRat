@@ -8,10 +8,6 @@
 #include <string>
 #include <vector>
 
-#if GPRAT_WITH_SYCL
-#include "gpu/sycl/sycl_utils.hpp"
-#endif
-
 // namespace for GPRat library entities
 namespace gprat
 {
@@ -169,8 +165,6 @@ class GP
        int gpu_id,
        int n_streams);
 
-   #if GPRAT_WITH_SYCL
-
     /**
      * @brief Constructs a Gaussian Process (GP) for SYCL computations
      *
@@ -183,8 +177,7 @@ class GP
      *                           vertical lengthscale, and noise variance
      *                           parameter of squared exponential kernel
      * @param trainable_bool Vector indicating which parameters are trainable
-     * @param gpu_id GPU identifier
-     * @param n_streams Number of CUDA streams for GPU computations
+     * @param DeviceParameters struct containing SYCL device parameters for computations
      */
     GP(std::vector<double> input,
        std::vector<double> output,
@@ -194,8 +187,6 @@ class GP
        std::vector<double> kernel_hyperparams,
        std::vector<bool> trainable_bool,
        const DeviceParameters &parameters);
-
-   #endif
 
     /* Member variables */
 

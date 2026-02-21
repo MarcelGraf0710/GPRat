@@ -21,11 +21,9 @@ potrf(sycl::queue queue, double *f_A, const std::size_t N)
     // column-major cuBLAS POTRF for row-major stored A
     // for UPPER part of symmetric positive semi-definite matrix A
 
-    queue.wait();
-
     oneapi::math::lapack::potrf(queue, oneapi::math::uplo::upper, static_cast<std::int64_t>(N), f_A, static_cast<std::int64_t>(N), scratchpad, scratchpad_size);
     
-    queue.wait_and_throw();
+    queue.wait();
 
     sycl::free(scratchpad, queue);
 
@@ -59,8 +57,6 @@ trsm(
 
     // column-major cuBLAS TRSM for row-major stored A & B
     // for X on opposite side (opposite of side_A)
-
-    queue.wait();
 
     oneapi::math::blas::column_major::trsm(
         queue,
@@ -102,8 +98,6 @@ syrk(sycl::queue queue,
     //   = - A^T * A - C
     // for UPPER part of symmetric matrix C
     // for op: TRANSPOSE
-
-    queue.wait();
 
     oneapi::math::blas::column_major::syrk(
         queue,
@@ -161,6 +155,8 @@ gemm(sycl::queue queue,
         f_C, 
         static_cast<std::int64_t>(N)); 
 
+    queue.wait();
+
     return f_C;
 }
 
@@ -181,8 +177,6 @@ trsv(sycl::queue queue,
     // column-major cuBLAS TRSV for row-major stored A
     // for op: opposite of transpose_A
     // for UPPER part of lower triangular matrix A
-
-    queue.wait();
 
     oneapi::math::blas::column_major::trsv(
         queue,
@@ -224,8 +218,6 @@ gemv(sycl::queue queue,
     // column-major cuBLAS GEMV for row-major stored A (and x,y)
     // for op: opposite of transpose_A
 
-    queue.wait();
-
     oneapi::math::blas::column_major::gemv(
         queue,
         invert_transpose_operator(is_A_transposed),
@@ -263,8 +255,6 @@ ger(sycl::queue queue,
     // A = alpha * y*x^T + A
     //   = -y*x^T + A
     // for opposite order of x,y
-
-    queue.wait();
 
     oneapi::math::blas::column_major::ger(queue, static_cast<std::int64_t>(N), static_cast<std::int64_t>(N), alpha, f_y, 1, f_x, 1, f_A, static_cast<std::int64_t>(N));
 

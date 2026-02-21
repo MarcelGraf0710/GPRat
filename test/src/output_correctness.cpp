@@ -20,6 +20,23 @@ using Catch::Matchers::WithinRel;
 namespace gprat::test
 {
 
+// Parameters /////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// CPU and global test settings
+constexpr std::size_t OPT_ITER = 3;
+constexpr std::size_t n_test = 128;
+constexpr std::size_t n_train = 128;
+constexpr std::size_t n_tiles = 16;
+constexpr std::size_t n_reg = 8;
+
+// CUDA test settings
+constexpr int gpu_id = 0;
+constexpr int n_streams = 1;
+
+// SYCL test settings
+constexpr int device_id = 0;
+constexpr int n_queues = 8;
+
 // GPRat results structure ////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
@@ -128,9 +145,7 @@ bool load_or_create_expected_results(
         {
             using iterator_type = std::istreambuf_iterator<char>;
             const std::string content(iterator_type{ ifs }, iterator_type{});
-            std::cout << "\033[34mTrying to parse content\033[0m" << std::endl;
             results = boost::json::value_to<GpratResults>(boost::json::parse(content));
-            std::cout << "\033[34mSuccessfully read expected results file\033[0m" << std::endl;
             return true;
         }
     }
@@ -155,21 +170,6 @@ std::string get_data_directory()
 }
 
 // Test execution /////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// CPU and global test settings
-constexpr std::size_t OPT_ITER = 3;
-constexpr std::size_t n_test = 128;
-constexpr std::size_t n_train = 128;
-constexpr std::size_t n_tiles = 16;
-constexpr std::size_t n_reg = 8;
-
-// CUDA test settings
-constexpr int gpu_id = 0;
-constexpr int n_streams = 1;
-
-// SYCL test settings
-constexpr int device_id = 0;
-constexpr int n_queues = 8;
 
 /**
  * @brief Generates results for a test configuration using the CPU for computations.
@@ -277,8 +277,6 @@ GpratResults run_on_data_gpu(
     return results_gpu;
 }
 
-#if GPRAT_WITH_SYCL
-
 /**
  * @brief Generates results for a test configuration using a SYCL device for computations.
  * 
@@ -301,8 +299,6 @@ GpratResults run_on_data_sycl(
     gprat::GP_data test_input(test_path, n_test, n_reg);
 
     const std::vector<bool> trainable = { true, true, true };
-
-    std::cout << "Setting up Gaussian Process with SYCL" << std::endl;
 
     utils::start_hpx_runtime(0, nullptr);
 
@@ -330,8 +326,6 @@ GpratResults run_on_data_sycl(
 
     return results_sycl;
 }
-
-#endif
 
 // Test cases /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -420,7 +414,6 @@ TEST_CASE("GP CPU results match known-good values", "[integration][cpu]")
 
 /*
  * CUDA GPU test case
- * NOTE: using higher tolerance than for CPU
  */
 TEST_CASE("GP GPU results match known-good values (no loss)", "[integration][gpu]")
 {
@@ -492,10 +485,8 @@ TEST_CASE("GP GPU results match known-good values (no loss)", "[integration][gpu
 
 /*
  * Test for SYCL
- * NOTE: using higher tolerance than for CPU
  */
 
- #if GPRAT_WITH_SYCL
 TEST_CASE("GP SYCL results match known-good values (no loss)", "[integration][sycl]")
 {
     if (!utils::compiled_with_sycl())
@@ -564,6 +555,5 @@ TEST_CASE("GP SYCL results match known-good values (no loss)", "[integration][sy
         REQUIRE_THAT(results.pred_no_optimize[i], WithinRel(expected_results.pred_no_optimize[i], eps));
     }
 }
-#endif
 
 } // ! namespace gprat::test
