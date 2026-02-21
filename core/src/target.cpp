@@ -32,6 +32,7 @@ CPU get_cpu() { return CPU(); }
 // CUDA ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #if GPRAT_WITH_CUDA
+
 CUDA_GPU::CUDA_GPU(int id, int n_streams) :
     id(id),
     n_streams(n_streams),
@@ -120,11 +121,13 @@ std::pair<cublasHandle_t, cudaStream_t> CUDA_GPU::next_cublas_handle()
 CUDA_GPU get_gpu(int id, int n_streams) { return CUDA_GPU(id, n_streams); }
 
 CUDA_GPU get_gpu() { return CUDA_GPU(0, 1); }
+
 #endif
 
 // SYCL ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #if GPRAT_WITH_SYCL
+
 SYCL_DEVICE::SYCL_DEVICE(const DeviceParameters &parameters) :
     id(parameters.id),
     n_queues(parameters.n_queues),
@@ -179,28 +182,7 @@ void SYCL_DEVICE::create()
         queues = std::vector<sycl::queue>(n_queues);
 
         for (size_t i = 0; i < n_queues; ++i) {
-            queues[i] = sycl::queue(sycl::gpu_selector_v); // sycl::gpu_selector_v
-
-            // // DEBUG
-            // std::cout << "Running on " << queues[i].get_device().get_info<sycl::info::device::name>() << "\n";
-            // double* test = sycl::malloc_device<double>(1, queues[i]);
-
-            // auto ctx = queues[i].get_context();
-            // auto pinfo = sycl::get_pointer_type(test, ctx);
-
-            // if (pinfo == sycl::usm::alloc::device) {
-            //     std::cout << "This is a device pointer.\n";
-            // } else if (pinfo == sycl::usm::alloc::shared) {
-            //     std::cout << "This is a shared pointer.\n";
-            // } else if (pinfo == sycl::usm::alloc::host) {
-            //     std::cout << "This is a host pointer.\n";
-            // } else {
-            //     std::cout << "Unknown pointer type.\n";
-            // }
-
-
-            // std::cout << "[QUEUE INITIALIZATION] Pointer type = " << (int)pinfo << "\n";
-            // ! DEBUH
+            queues[i] = sycl::queue(sycl::gpu_selector_v);
         }
     } 
     catch (const sycl::exception& e) 
@@ -221,7 +203,7 @@ void SYCL_DEVICE::destroy()
     }
 }
 
-sycl::queue &SYCL_DEVICE::next_queue()
+sycl::queue SYCL_DEVICE::next_queue()
 {
     return queues[static_cast<std::size_t>(i_queue++) % static_cast<std::size_t>(n_queues)];
 }
@@ -253,6 +235,7 @@ void SYCL_DEVICE::sync_queues(std::vector<sycl::queue> &subset_of_queues)
 SYCL_DEVICE get_sycl_device(const std::size_t id, const std::size_t n_queues) { return SYCL_DEVICE(DeviceParameters {id, n_queues}); }
 
 SYCL_DEVICE get_sycl_device() { return SYCL_DEVICE(DeviceParameters {0, 1}); }
+
 #endif
 
 // General ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -333,10 +316,13 @@ void print_available_gpus()
 int gpu_count()
 {
 #if GPRAT_WITH_CUDA
+
     int deviceCount;
     cudaGetDeviceCount(&deviceCount);
     return deviceCount;
+
 #elif GPRAT_WITH_SYCL
+
     try {
         std::vector<sycl::device> all_gpus;
         std::vector<sycl::platform> platforms = sycl::platform::get_platforms();
@@ -357,11 +343,14 @@ int gpu_count()
     {
         std::cout << "SYCL exception: " << e.what() << "\n";
     }
+
 #else
-    std::cout << "CUDA is not available - There are no GPUs available. You can only "
+
+    std::cout << "GPRat has been compiled without GPU support. You can only "
                  "use `get_cpu()` to utilize the CPU for computation."
               << std::endl;
     return 0;
+
 #endif
 }
 

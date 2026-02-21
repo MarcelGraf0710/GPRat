@@ -46,7 +46,7 @@ struct GP_data
     GP_data(const std::string &file_path, int n, int n_reg);
 };
 
-// class GP ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Class GP ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * @brief Gaussian Process class for regression tasks
@@ -84,7 +84,7 @@ class GP
 
   public:
 
-    /* Member variables */
+/// Variables /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /** @brief Number of regressors */
     int n_reg;
@@ -94,7 +94,7 @@ class GP
      */
     gprat_hyper::SEKParams kernel_params;
 
-    /* Constructors */
+/// Generic constructor ///////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * @brief Constructs a Gaussian Process (GP)
@@ -119,6 +119,8 @@ class GP
        std::vector<bool> trainable_bool,
        std::shared_ptr<Target> target);
 
+/// CPU constructor ///////////////////////////////////////////////////////////////////////////////////////////////////
+
     /**
      * @brief Constructs a Gaussian Process (GP) for CPU computations
      *
@@ -139,6 +141,8 @@ class GP
        int n_regressors,
        std::vector<double> kernel_hyperparams,
        std::vector<bool> trainable_bool);
+
+/// GPU constructor ///////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * @brief Constructs a Gaussian Process (GP) for GPU computations
@@ -165,6 +169,8 @@ class GP
        int gpu_id,
        int n_streams);
 
+/// SYCL constructor //////////////////////////////////////////////////////////////////////////////////////////////////
+
     /**
      * @brief Constructs a Gaussian Process (GP) for SYCL computations
      *
@@ -188,7 +194,7 @@ class GP
        std::vector<bool> trainable_bool,
        const DeviceParameters &parameters);
 
-    /* Member variables */
+/// Class methods /////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * Returns Gaussian Process attributes as string.
