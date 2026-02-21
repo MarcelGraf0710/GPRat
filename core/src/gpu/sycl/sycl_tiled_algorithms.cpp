@@ -411,8 +411,7 @@ void vector_difference_tiled(
     std::vector<hpx::shared_future<double *>> &ft_inter,
     std::vector<hpx::shared_future<double *>> &ft_vector,
     const std::size_t m_tile_size,
-    const std::size_t m_tiles,
-    gprat::SYCL_DEVICE &sycl_device
+    const std::size_t m_tiles
 )
 {
     for (std::size_t i = 0; i < m_tiles; i++)
@@ -425,8 +424,7 @@ void matrix_diagonal_tiled(
     std::vector<hpx::shared_future<double *>> &ft_priorK,
     std::vector<hpx::shared_future<double *>> &ft_vector,
     const std::size_t m_tile_size,
-    const std::size_t m_tiles,
-    gprat::SYCL_DEVICE &sycl_device
+    const std::size_t m_tiles
 )
 {
     for (std::size_t i = 0; i < m_tiles; i++)

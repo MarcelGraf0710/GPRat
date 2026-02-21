@@ -190,15 +190,13 @@ void symmetric_matrix_matrix_tiled(
  * @param ft_vector Tiled vector that is the result of the subtraction.
  * @param m_tile_size Tile size dimension.
  * @param m_tiles Number of tiles.
- * @param sycl_device The SYCL target for computations
  */
 void vector_difference_tiled(
     std::vector<hpx::shared_future<double *>> &ft_priorK,
     std::vector<hpx::shared_future<double *>> &ft_inter,
     std::vector<hpx::shared_future<double *>> &ft_vector,
     const std::size_t m_tile_size,
-    const std::size_t m_tiles,
-    gprat::SYCL_DEVICE &sycl_device
+    const std::size_t m_tiles
 );
 
 // Tiled Prediction Uncertainty
@@ -206,8 +204,7 @@ void matrix_diagonal_tiled(
     std::vector<hpx::shared_future<double *>> &ft_priorK,
     std::vector<hpx::shared_future<double *>> &ft_vector,
     const std::size_t m_tile_size,
-    const std::size_t m_tiles,
-    gprat::SYCL_DEVICE &sycl_device
+    const std::size_t m_tiles
 );
 
 // Compute I-y*y^T*inv(K)

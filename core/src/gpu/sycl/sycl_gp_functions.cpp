@@ -201,7 +201,7 @@ predict_with_uncertainty(
 
     // Compute predicition uncertainty
     vector_difference_tiled(
-        d_prior_K_tiles, d_prior_inter_tiles, d_prediction_uncertainty_tiles, static_cast<std::size_t>(m_tile_size), static_cast<std::size_t>(m_tiles), sycl_device);
+        d_prior_K_tiles, d_prior_inter_tiles, d_prediction_uncertainty_tiles, static_cast<std::size_t>(m_tile_size), static_cast<std::size_t>(m_tiles));
 
     // Get predictions and uncertainty to return them
     std::vector<double> prediction = 
@@ -328,7 +328,7 @@ predict_with_full_cov(
         d_t_cross_covariance_tiles, d_prior_K_tiles, static_cast<std::size_t>(n_tile_size), static_cast<std::size_t>(m_tile_size), static_cast<std::size_t>(n_tiles), static_cast<std::size_t>(m_tiles), sycl_device);
 
     // Compute predicition uncertainty
-    matrix_diagonal_tiled(d_prior_K_tiles, d_prediction_uncertainty_tiles, static_cast<std::size_t>(m_tile_size), static_cast<std::size_t>(m_tiles), sycl_device);
+    matrix_diagonal_tiled(d_prior_K_tiles, d_prediction_uncertainty_tiles, static_cast<std::size_t>(m_tile_size), static_cast<std::size_t>(m_tiles));
 
     // Get predictions and uncertainty to return them
     std::vector<double> prediction = 
