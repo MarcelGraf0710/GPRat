@@ -9,15 +9,11 @@
 namespace gprat::sycl_backend
 {
 
-double *diag_posterior(
-    double *A, 
-    double *B, 
-    std::size_t M
-)
+double *diag_posterior(double *A, double *B, std::size_t M)
 {
     sycl::queue queue(sycl::gpu_selector_v);
 
-    double *tile = sycl::malloc_device<gprat::sycl_backend::real_t>(M, queue);
+    double *tile = sycl::malloc_device<double>(M, queue);
 
     // tile = 1.0*A + (-1.0)*B
     oneapi::math::blas::column_major::omatadd(
@@ -49,7 +45,7 @@ double *diag_tile(
     //sycl::queue queue = sycl_device.next_queue();
     sycl::queue queue(sycl::gpu_selector_v);
 
-    double *diag_tile = sycl::malloc_device<gprat::sycl_backend::real_t>(M, queue);
+    double *diag_tile = sycl::malloc_device<double>(M, queue);
 
     oneapi::math::blas::column_major::omatcopy(
         queue,

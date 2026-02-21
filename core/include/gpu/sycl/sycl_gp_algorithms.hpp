@@ -1,9 +1,14 @@
 #ifndef SYCL_GP_ALGORITHMS_H
 #define SYCL_GP_ALGORITHMS_H
 
+// GPRat
 #include "gp_kernels.hpp"
 #include "target.hpp"
+
+// HPX
 #include <hpx/future.hpp>
+
+// STD library
 #include <vector>
 
 namespace gprat::sycl_backend
@@ -65,7 +70,7 @@ double *gen_tile_prior_covariance(
  * @param tile_column The column-wise dimension of the tile
  * @param n_regressors The number of regressors
  * @param sek_params The kernel hyperparameters
- *
+ * @param sycl_device SYCL target for computations
  * @return A tile of the cross covariance matrix of size N_row x N_col
  * @note Does NOT apply noise variance
  */
@@ -100,11 +105,14 @@ hpx::shared_future<double *> gen_tile_transpose(std::size_t n_row_tile_size,
  * @param row The row index of the tile in relation to the tiled matrix
  * @param n_tile_size The size of the tile
  * @param output The output data vector
- *
+ * @param sycl_device SYCL target for computations
  * @return A tile of the output data of size n_tile_size
  */
 double *
-gen_tile_output(const std::size_t row, const std::size_t n_tile_size, const double *d_output, gprat::SYCL_DEVICE &sycl_device);
+gen_tile_output(const std::size_t row, 
+                const std::size_t n_tile_size, 
+                const double *d_output, 
+                gprat::SYCL_DEVICE &sycl_device);
 
 /**
  * @brief Compute the L2-error norm over all tiles and elements
@@ -316,6 +324,6 @@ void free_lower_tiled_matrix(
     gprat::SYCL_DEVICE &sycl_device
 );
 
-}  // end of namespace sycl_backend
+}  // end of namespace gprat::sycl_backend
 
 #endif  // end of SYCL_GP_ALGORITHMS_H

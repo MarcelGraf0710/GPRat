@@ -13,8 +13,7 @@ namespace gprat::sycl_backend
  *
  * @return Diagonal elements of posterior covariance matrix
  */
-double *diag_posterior(
-    double *A, double *B, std::size_t M);
+double *diag_posterior(double *A, double *B, std::size_t M);
 
 /**
  * @brief Retrieve diagonal elements of posterior covariance matrix.
@@ -24,7 +23,7 @@ double *diag_posterior(
  *
  * @return Diagonal elements of posterior covariance matrix
  */
-double *diag_tile(double *A, std::size_t M);//, gprat::SYCL_DEVICE &sycl_device);
+double *diag_tile(double *A, std::size_t M);
 
 }  // end of namespace gprat::sycl_backend
 

@@ -3,10 +3,9 @@
 
 // Includes ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// GPRat
 #include "sycl_utils.hpp"
 #include "gp_kernels.hpp"
-
-#include <cstddef>
 
 // Transpose kernel ///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -21,7 +20,7 @@ class TransposeKernel
     double *original;
     std::size_t width;
     std::size_t height;
-    sycl::local_accessor<gprat::sycl_backend::real_t, 2> local;
+    sycl::local_accessor<double, 2> local;
 
     public:
 
@@ -45,20 +44,17 @@ class TransposeKernel
     original(original),
     width(width),
     height(height),
-    local(sycl::local_accessor<gprat::sycl_backend::real_t, 2>(sycl::range<2>(WORK_GROUP_SIZE, WORK_GROUP_SIZE + 1), cgh))
+    local(sycl::local_accessor<double, 2>(sycl::range<2>(WORK_GROUP_SIZE, WORK_GROUP_SIZE + 1), cgh))
     {}
 
     void operator()(const sycl::nd_item<2> &nd_item) const
     {
-        // Local indices
         const std::size_t local_x = nd_item.get_local_id(1);
         const std::size_t local_y = nd_item.get_local_id(0);
 
-        // Group indices
         const std::size_t group_x = nd_item.get_group(1);
         const std::size_t group_y = nd_item.get_group(0);
 
-        // Global coordinates (like CUDA's blockIdx * blockDim + threadIdx)
         std::size_t xIndex = group_x * WORK_GROUP_SIZE + local_x;
         std::size_t yIndex = group_y * WORK_GROUP_SIZE + local_y;
 
@@ -69,7 +65,7 @@ class TransposeKernel
         }
         else
         {
-            local[local_y][local_x] = 0.0; // optional padding
+            local[local_y][local_x] = 0.0; // padding
         }
 
         nd_item.barrier(sycl::access::fence_space::local_space);
@@ -388,4 +384,4 @@ class GenTileOutputKernel
     }
 };
 
-#endif // ! GPRAT_SYCL_KERNELS_H
+#endif // end of GPRAT_SYCL_KERNELS_H

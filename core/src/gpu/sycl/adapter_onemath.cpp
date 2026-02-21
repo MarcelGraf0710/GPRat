@@ -12,7 +12,7 @@ potrf(sycl::queue queue, double *f_A, const std::size_t N)
         static_cast<std::int64_t>(N)
     );
 
-    gprat::sycl_backend::real_t *scratchpad = sycl::malloc_device<gprat::sycl_backend::real_t>(static_cast<std::size_t>(scratchpad_size), queue);
+    double *scratchpad = sycl::malloc_device<double>(static_cast<std::size_t>(scratchpad_size), queue);
 
     // row-major POTRF
     // A = potrf(A)
@@ -145,40 +145,6 @@ gemm(sycl::queue queue,
     //   = op(B) * op(A) - C
     // for inverted ordering of matrices A, B
 
-    // std::cout << "[adapter_onemath.cpp] gemm : HAMMERTIME" << std::endl;
-    // std::vector<double> test_vector(M * N, -1.0);
-    // auto copy_process = queue.memcpy(test_vector.data(), f_A, test_vector.size() * sizeof(double));
-    // copy_process.wait();
-    // std::cout << "[adapter_onemath.cpp] gemm : Test vector has length " << test_vector.size() << "\n";
-    // for (int i = 0; i < test_vector.size(); ++i)
-    // {
-    //     std::cout << test_vector[i] << " ";
-    // }
-    // std::cout << "]\n";
-
-    // std::cout << "[adapter_onemath.cpp] gemm : HAMMERTIME 2" << std::endl;
-    // std::vector<double> x_vector(N * K, -1.0);
-    // copy_process = queue.memcpy(x_vector.data(), f_B, x_vector.size() * sizeof(double));
-    // copy_process.wait();
-    // std::cout << "[adapter_onemath.cpp] gemm : X vector has length " << x_vector.size() << "\n";
-    // for (int i = 0; i < x_vector.size(); ++i)
-    // {
-    //     std::cout << x_vector[i] << " ";
-    // }
-    // std::cout << "]\n";
-
-    // std::cout << "[adapter_onemath.cpp] gemm : HAMMERTIME 3" << std::endl;
-    // std::vector<double> y_vector(N * M, -1.0);
-    // copy_process = queue.memcpy(y_vector.data(), f_C, y_vector.size() * sizeof(double));
-    // copy_process.wait();
-    // std::cout << "[adapter_onemath.cpp] gemm : Y vector has length " << y_vector.size() << "\n";
-    // for (int i = 0; i < y_vector.size(); ++i)
-    // {
-    //     std::cout << y_vector[i] << " ";
-    // }
-    // std::cout << "]\n";
-
-
     oneapi::math::blas::column_major::gemm(
         queue,
         is_B_transposed,
@@ -197,57 +163,6 @@ gemm(sycl::queue queue,
 
     return f_C;
 }
-
-
-// double *
-// gemm(double *f_A,
-//      double *f_B,
-//      double *f_C,
-//      const std::size_t M,
-//      const std::size_t N,
-//      const std::size_t K,
-//      const oneapi::math::transpose is_A_transposed, 
-//      const oneapi::math::transpose is_B_transposed)
-// {
-//     // GEMM constants
-//     const double alpha = -1.0;
-//     const double beta = 1.0;
-
-//     // row-major GEMM
-//     // C = alpha * op(A) * op(B) + beta * C
-//     //   = op(A) * op(B) - C
-//     // for op(A): transpose_A
-//     // for op(B): transpose_B
-
-//     // column-major cuBLAS GEMM for row-major stored A, B, C
-//     // C = alpha * op(B) * op(A) + beta * C
-//     //   = op(B) * op(A) - C
-//     // for inverted ordering of matrices A, B
-
-//     sycl::queue queue(sycl::gpu_selector_v);
-
-//     oneapi::math::blas::column_major::gemm(
-//         queue,
-//         is_B_transposed,
-//         is_A_transposed,
-//         static_cast<std::int64_t>(N),
-//         static_cast<std::int64_t>(M),
-//         static_cast<std::int64_t>(K),
-//         alpha,
-//         f_B,
-//         static_cast<std::int64_t>(N),
-//         f_A,
-//         static_cast<std::int64_t>(K),
-//         beta,
-//         f_C,
-//         static_cast<std::int64_t>(N)); 
-
-//     queue.wait();
-
-//     return f_C;
-// }
-
-
 
 // BLAS LEVEL 2 OPERATIONS ////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -309,43 +224,6 @@ gemv(sycl::queue queue,
     // column-major cuBLAS GEMV for row-major stored A (and x,y)
     // for op: opposite of transpose_A
 
-    // std::cout << "M = " << M << ", N = " << N 
-    //       << ", lda = " << N 
-    //       << ", incx = 1, incy = 1" << std::endl;
-
-    // std::cout << "[adapter_onemath.cpp] gemv : HAMMERTIME" << std::endl;
-    // std::vector<double> test_vector(M * N, -1.0);
-    // auto copy_process = queue.memcpy(test_vector.data(), f_A, test_vector.size() * sizeof(double));
-    // copy_process.wait();
-    // std::cout << "[adapter_onemath.cpp] gemv : Test vector has length " << test_vector.size() << "\n";
-    // for (int i = 0; i < test_vector.size(); ++i)
-    // {
-    //     std::cout << test_vector[i] << " ";
-    // }
-    // std::cout << "]\n";
-
-    // std::cout << "[adapter_onemath.cpp] gemv : HAMMERTIME 2" << std::endl;
-    // std::vector<double> x_vector(32, -1.0);
-    // copy_process = queue.memcpy(x_vector.data(), f_x, x_vector.size() * sizeof(double));
-    // copy_process.wait();
-    // std::cout << "[adapter_onemath.cpp] gemv : X vector has length " << x_vector.size() << "\n";
-    // for (int i = 0; i < x_vector.size(); ++i)
-    // {
-    //     std::cout << x_vector[i] << " ";
-    // }
-    // std::cout << "]\n";
-
-    // std::cout << "[adapter_onemath.cpp] gemv : HAMMERTIME 3" << std::endl;
-    // std::vector<double> y_vector(32, -1.0);
-    // copy_process = queue.memcpy(y_vector.data(), f_y, y_vector.size() * sizeof(double));
-    // copy_process.wait();
-    // std::cout << "[adapter_onemath.cpp] gemv : Y vector has length " << y_vector.size() << "\n";
-    // for (int i = 0; i < y_vector.size(); ++i)
-    // {
-    //     std::cout << y_vector[i] << " ";
-    // }
-    // std::cout << "]\n";
-
     queue.wait();
 
     oneapi::math::blas::column_major::gemv(
@@ -366,50 +244,6 @@ gemv(sycl::queue queue,
 
     return f_y;
 }
-
-// double *
-// gemv(double *f_A,
-//      double *f_x,
-//      double *f_y,
-//      const std::size_t M,
-//      const std::size_t N,
-//      const double alpha,
-//      const oneapi::math::transpose is_A_transposed)
-// {
-//     // GEMV constants
-//     const double alpha_value = alpha;
-//     const double beta = 1.0;
-
-//     // row-major GEMV
-//     // y = alpha * op(A) * x + beta * y
-//     //   = alpha * op(A) * x + y
-//     // for MxN matrix A
-//     // for vector x
-//     // for vector y
-
-//     // column-major cuBLAS GEMV for row-major stored A (and x,y)
-//     // for op: opposite of transpose_A
-
-//     sycl::queue queue(sycl::gpu_selector_v);
-
-//     oneapi::math::blas::column_major::gemv(
-//         queue,
-//         invert_transpose_operator(is_A_transposed),
-//         static_cast<std::int64_t>(N),
-//         static_cast<std::int64_t>(M),
-//         alpha_value,
-//         f_A,
-//         static_cast<std::int64_t>(N),
-//         f_x,
-//         1,
-//         beta,
-//         f_y,
-//         1);
-
-//     queue.wait();
-
-//     return f_y;
-// }
 
 double *
 ger(sycl::queue queue,
@@ -528,7 +362,7 @@ dot(
     const std::size_t N
 )
 {
-    double *result = sycl::malloc_device<gprat::sycl_backend::real_t>(1, queue);
+    double *result = sycl::malloc_device<double>(1, queue);
     queue.fill(result, 0, 1).wait();
 
     oneapi::math::blas::column_major::dot(queue, static_cast<std::int64_t>(N), f_a, 1, f_b, 1, result);

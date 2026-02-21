@@ -30,7 +30,7 @@ predict(
 {
     sycl_device.create();
 
-    double *d_training_input = copy_to_device(h_training_input, sycl_device, 1);
+    double *d_training_input = copy_to_device(h_training_input, sycl_device);
     double *d_training_output = copy_to_device(h_training_output, sycl_device);
     double *d_test_input = copy_to_device(h_test_input, sycl_device);
 
@@ -417,44 +417,44 @@ compute_loss(
     return loss_value.get();
 }
 
-// optimize ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+// // optimize ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-std::vector<double>
-optimize(
-    // const std::vector<double> &training_input,
-    // const std::vector<double> &training_output,
-    // int n_tiles,
-    // int n_tile_size,
-    // int n_regressors,
-    // const gprat_hyper::AdamParams &adam_params,
-    // const gprat_hyper::SEKParams &sek_params,
-    // std::vector<bool> trainable_params,
-    // gprat::SYCL_DEVICE &sycl_device
-)
-{
-    throw std::logic_error("Function not implemented for GPU");
-    // return std::vector<double>>();
-}
+// std::vector<double>
+// optimize(
+//     // const std::vector<double> &training_input,
+//     // const std::vector<double> &training_output,
+//     // int n_tiles,
+//     // int n_tile_size,
+//     // int n_regressors,
+//     // const gprat_hyper::AdamParams &adam_params,
+//     // const gprat_hyper::SEKParams &sek_params,
+//     // std::vector<bool> trainable_params,
+//     // gprat::SYCL_DEVICE &sycl_device
+// )
+// {
+//     throw std::logic_error("Function not implemented for GPU");
+//     // return std::vector<double>>();
+// }
 
-// optimize_step //////////////////////////////////////////////////////////////////////////////////////////////////////
+// // optimize_step //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-double 
-optimize_step(
-    // const std::vector<double> &training_input,
-    // const std::vector<double> &training_output,
-    // int n_tiles,
-    // int n_tile_size,
-    // int n_regressors,
-    // gprat_hyper::AdamParams &adam_params,
-    // gprat_hyper::SEKParams &sek_params,
-    // std::vector<bool> trainable_params,
-    // int iter,
-    // gprat::SYCL_DEVICE &sycl_device
-)
-{
-    throw std::logic_error("Function not implemented for GPU");
-    // return 0.0;
-}
+// double 
+// optimize_step(
+//     // const std::vector<double> &training_input,
+//     // const std::vector<double> &training_output,
+//     // int n_tiles,
+//     // int n_tile_size,
+//     // int n_regressors,
+//     // gprat_hyper::AdamParams &adam_params,
+//     // gprat_hyper::SEKParams &sek_params,
+//     // std::vector<bool> trainable_params,
+//     // int iter,
+//     // gprat::SYCL_DEVICE &sycl_device
+// )
+// {
+//     throw std::logic_error("Function not implemented for GPU");
+//     // return 0.0;
+// }
 
 // cholesky ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 

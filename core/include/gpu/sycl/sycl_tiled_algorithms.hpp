@@ -1,11 +1,13 @@
 #ifndef SYCL_TILED_ALGORITHMS_H
 #define SYCL_TILED_ALGORITHMS_H
 
+// GPRat
 #include "gp_hyperparameters.hpp"
 #include "target.hpp"
-#include <cusolverDn.h>
 #include <gp_kernels.hpp>
-#include <hpx/modules/async_cuda.hpp>
+
+// HPX
+#include <hpx/future.hpp>
 
 namespace gprat::sycl_backend
 {
@@ -15,13 +17,11 @@ namespace gprat::sycl_backend
 /**
  * @brief Perform right-looking Cholesky decomposition.
  *
- * @param n_streams Number of CUDA streams.
  * @param ft_tiles Matrix represented as a vector of tiles, containing the
  *        covariance matrix, afterwards the Cholesky decomposition.
  * @param n_tile_size Tile size per dimension.
  * @param n_tiles Number of tiles per dimension.
- * @param gpu GPU target for computations.
- * @param cusolver cuSolver handle, already created.
+ * @param sycl_device The SYCL target for computations
  */
 void right_looking_cholesky_tiled(
     std::vector<hpx::shared_future<double *>> &ft_tiles,
@@ -39,7 +39,7 @@ void right_looking_cholesky_tiled(
  * @param ft_rhs Tiled right-hand side vector, afterwards containing the tiled solution vector
  * @param n_tile_size Tile size per dimension.
  * @param n_tiles Number of tiles per dimension.
- * @param gpu GPU target for computations.
+ * @param sycl_device The SYCL target for computations
  */
 void forward_solve_tiled(
     std::vector<hpx::shared_future<double *>> &ft_tiles,
@@ -56,7 +56,7 @@ void forward_solve_tiled(
  * @param ft_rhs Tiled right-hand side vector, afterwards containing the tiled solution vector
  * @param n_tile_size Tile size per dimension.
  * @param n_tiles Number of tiles per dimension.
- * @param gpu GPU target for computations.
+ * @param sycl_device The SYCL target for computations
  */
 void backward_solve_tiled(
     std::vector<hpx::shared_future<double *>> &ft_tiles,
@@ -75,7 +75,7 @@ void backward_solve_tiled(
  * @param m_tile_size Tile size of second dimension.
  * @param n_tiles Number of tiles in first dimension.
  * @param m_tiles Number of tiles in second dimension.
- * @param gpu GPU target for computations.
+ * @param sycl_device The SYCL target for computations
  */
 void forward_solve_tiled_matrix(
     std::vector<hpx::shared_future<double *>> &ft_tiles,
@@ -96,7 +96,7 @@ void forward_solve_tiled_matrix(
  * @param m_tile_size Tile size of second dimension.
  * @param n_tiles Number of tiles in first dimension.
  * @param m_tiles Number of tiles in second dimension.
- * @param gpu GPU target for computations.
+ * @param sycl_device The SYCL target for computations
  */
 void backward_solve_tiled_matrix(
     std::vector<hpx::shared_future<double *>> &ft_tiles,
@@ -118,7 +118,7 @@ void backward_solve_tiled_matrix(
  * @param N_col Tile size of second dimension.
  * @param n_tiles Number of tiles in first dimension.
  * @param m_tiles Number of tiles in second dimension.
- * @param gpu GPU target for computations.
+ * @param sycl_device The SYCL target for computations
  */
 void matrix_vector_tiled(
     std::vector<hpx::shared_future<double *>> &ft_tiles,
@@ -140,7 +140,7 @@ void matrix_vector_tiled(
  * @param m_tile_size Tile size of second dimension.
  * @param n_tiles Number of tiles in first dimension.
  * @param m_tiles Number of tiles in second dimension.
- * @param gpu GPU target for computations.
+ * @param sycl_device The SYCL target for computations
  */
 void symmetric_matrix_matrix_diagonal_tiled(
     std::vector<hpx::shared_future<double *>> &ft_tCC_tiles,
@@ -190,7 +190,7 @@ void symmetric_matrix_matrix_tiled(
  * @param ft_vector Tiled vector that is the result of the subtraction.
  * @param m_tile_size Tile size dimension.
  * @param m_tiles Number of tiles.
- * @param gpu GPU target for computations.
+ * @param sycl_device The SYCL target for computations
  */
 void vector_difference_tiled(
     std::vector<hpx::shared_future<double *>> &ft_priorK,
@@ -235,7 +235,7 @@ void update_grad_K_tiled_mkl(
  * @param beta1_T Tiled vector containing the first moment of the Adam optimizer.
  * @param beta2_T Tiled vector containing the second moment of the Adam optimizer.
  * @param iter Current iteration.
- * @param gpu GPU target for computations.
+ * @param sycl_device The SYCL target for computations
  *
  * @return The updated hyperparameter
  */
@@ -271,7 +271,7 @@ double update_lengthscale(
  * @param beta1_T Tiled vector containing the first moment of the Adam optimizer.
  * @param beta2_T Tiled vector containing the second moment of the Adam optimizer.
  * @param iter Current iteration.
- * @param gpu GPU target for computations.
+ * @param sycl_device The SYCL target for computations
  *
  * @return The updated hyperparameter
  */
@@ -305,7 +305,7 @@ double update_vertical_lengthscale(
  * @param beta1_T Tiled vector containing the first moment of the Adam optimizer.
  * @param beta2_T Tiled vector containing the second moment of the Adam optimizer.
  * @param iter Current iteration.
- * @param gpu GPU target for computations.
+ * @param sycl_device The SYCL target for computations
  *
   @return The updated hyperparameter
  */

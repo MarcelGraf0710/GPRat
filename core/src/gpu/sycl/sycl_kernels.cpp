@@ -16,7 +16,7 @@ transposed(transposed),
 original(original),
 width(width),
 height(height),
-local(sycl::local_accessor<gprat::sycl_backend::real_t, 2>(sycl::range<2>(WORK_GROUP_SIZE, WORK_GROUP_SIZE + 1), cgh))
+local(sycl::local_accessor<double, 2>(sycl::range<2>(WORK_GROUP_SIZE, WORK_GROUP_SIZE + 1), cgh))
 {}
 
 void TransposeKernel::operator()(const sycl::nd_item<2> &nd_item) const

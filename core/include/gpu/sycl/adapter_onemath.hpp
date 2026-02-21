@@ -1,6 +1,8 @@
 #ifndef ADAPTER_ONEMATH_H
 #define ADAPTER_ONEMATH_H
 
+// INCLUDES ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 // GRPat
 #include <target.hpp>
 #include "sycl_utils.hpp"
@@ -10,23 +12,6 @@
 
 // oneMath
 #include <oneapi/math.hpp>
-
-inline const char* usm_alloc_to_string(sycl::usm::alloc a)
-{
-    switch (a)
-    {
-        case sycl::usm::alloc::host:
-            return "usm::alloc::host";
-        case sycl::usm::alloc::device:
-            return "usm::alloc::device";
-        case sycl::usm::alloc::shared:
-            return "usm::alloc::shared";
-        case sycl::usm::alloc::unknown:
-            return "usm::alloc::unknown";
-        default:
-            return "usm::alloc::<invalid>";
-    }
-}
 
 // BLAS LEVEL 3 OPERATIONS ////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -96,16 +81,6 @@ syrk(sycl::queue queue,
  *
  * @return updated matrix f_C, in-place update
  */
-// double *
-// gemm(double *f_A,
-//      double *f_B,
-//      double *f_C,
-//      const std::size_t M,
-//      const std::size_t N,
-//      const std::size_t K,
-//      const oneapi::math::transpose is_A_transposed,
-//      const oneapi::math::transpose is_B_transposed);
-
 double *
 gemm(sycl::queue queue,
      double *f_A,
@@ -150,15 +125,6 @@ trsv(sycl::queue queue,
  *
  * @return updated vector f_y, in-place update
  */
-// double *
-// gemv(double *f_A,
-//      double *f_x,
-//      double *f_y,
-//      const std::size_t M,
-//      const std::size_t N,
-//      const double alpha,
-//      const oneapi::math::transpose is_A_transposed);
-
 double *
 gemv(sycl::queue queue,
      double * f_A,

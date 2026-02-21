@@ -29,7 +29,7 @@ double * gen_tile_covariance(const double *d_input,
 
         sycl::queue queue = sycl_device.next_queue();
 
-        d_tile = sycl::malloc_device<gprat::sycl_backend::real_t>(n_tile_size * n_tile_size, queue);
+        d_tile = sycl::malloc_device<double>(n_tile_size * n_tile_size, queue);
 
         auto event = queue.submit
         (
@@ -53,7 +53,6 @@ double * gen_tile_covariance(const double *d_input,
     }
 }
 
-
 double *gen_tile_full_prior_covariance(
     const double *d_input,
     const std::size_t tile_row,
@@ -69,7 +68,7 @@ double *gen_tile_full_prior_covariance(
 
         sycl::queue queue = sycl_device.next_queue();
 
-        d_tile = sycl::malloc_device<gprat::sycl_backend::real_t>(n_tile_size * n_tile_size, queue);
+        d_tile = sycl::malloc_device<double>(n_tile_size * n_tile_size, queue);
         
         auto event = queue.submit
         (
@@ -92,7 +91,6 @@ double *gen_tile_full_prior_covariance(
     }
 }
 
-
 double *gen_tile_prior_covariance(
     const double *d_input,
     const std::size_t tile_row,
@@ -108,7 +106,7 @@ double *gen_tile_prior_covariance(
 
         sycl::queue queue = sycl_device.next_queue();
 
-        d_tile = sycl::malloc_device<gprat::sycl_backend::real_t>(n_tile_size, queue);
+        d_tile = sycl::malloc_device<double>(n_tile_size, queue);
         
         auto event = queue.submit
         (
@@ -131,7 +129,6 @@ double *gen_tile_prior_covariance(
     }
 }
 
-
 double *gen_tile_cross_covariance(
     const double *d_row_input,
     const double *d_col_input,
@@ -149,7 +146,7 @@ double *gen_tile_cross_covariance(
 
         sycl::queue queue = sycl_device.next_queue();
 
-        d_tile = sycl::malloc_device<gprat::sycl_backend::real_t>(n_row_tile_size * n_column_tile_size, queue);
+        d_tile = sycl::malloc_device<double>(n_row_tile_size * n_column_tile_size, queue);
         
         auto event = queue.submit
         (
@@ -180,7 +177,6 @@ double *gen_tile_cross_covariance(
     }
 }
 
-
 hpx::shared_future<double *> gen_tile_cross_cov_T(std::size_t n_row_tile_size,
                                                   std::size_t n_column_tile_size,
                                                   const hpx::shared_future<double *> f_cross_covariance_tile,
@@ -192,7 +188,7 @@ hpx::shared_future<double *> gen_tile_cross_cov_T(std::size_t n_row_tile_size,
 
         sycl::queue queue = sycl_device.next_queue();
 
-        transposed = sycl::malloc_device<gprat::sycl_backend::real_t>(n_row_tile_size * n_column_tile_size, queue);
+        transposed = sycl::malloc_device<double>(n_row_tile_size * n_column_tile_size, queue);
 
         double *d_cross_covariance_tile = f_cross_covariance_tile.get();
 
@@ -222,7 +218,6 @@ hpx::shared_future<double *> gen_tile_cross_cov_T(std::size_t n_row_tile_size,
     }
 }
 
-
 double *
 gen_tile_output(
     const std::size_t row, 
@@ -237,7 +232,7 @@ gen_tile_output(
 
         sycl::queue queue = sycl_device.next_queue();
 
-        d_tile = sycl::malloc_device<gprat::sycl_backend::real_t>(n_tile_size, queue);
+        d_tile = sycl::malloc_device<double>(n_tile_size, queue);
         
         auto event = queue.submit
         (
@@ -258,7 +253,6 @@ gen_tile_output(
     }
 }
 
-
 double *gen_tile_zeros(std::size_t n_tile_size, gprat::SYCL_DEVICE &sycl_device)
 {
     try
@@ -266,7 +260,7 @@ double *gen_tile_zeros(std::size_t n_tile_size, gprat::SYCL_DEVICE &sycl_device)
         sycl::queue queue = sycl_device.next_queue();
 
         double *d_tile;
-        d_tile = sycl::malloc_device<gprat::sycl_backend::real_t>(n_tile_size, queue);
+        d_tile = sycl::malloc_device<double>(n_tile_size, queue);
         queue.fill(d_tile, 0.0, n_tile_size).wait();
         return d_tile;
     }
@@ -278,7 +272,6 @@ double *gen_tile_zeros(std::size_t n_tile_size, gprat::SYCL_DEVICE &sycl_device)
 }
 
 // Standard C++ code //////////////////////////////////////////////////////////////////////////////////////////////////
-
 
 double compute_error_norm(std::size_t n_tiles,
                           std::size_t n_tile_size,
@@ -332,7 +325,6 @@ std::vector<hpx::shared_future<double *>> assemble_tiled_covariance_matrix(
     return d_tiles;
 }
 
-
 std::vector<hpx::shared_future<double *>> assemble_alpha_tiles(
     const double *d_output, const std::size_t n_tiles, const std::size_t n_tile_size, gprat::SYCL_DEVICE &sycl_device)
 {
@@ -345,7 +337,6 @@ std::vector<hpx::shared_future<double *>> assemble_alpha_tiles(
 
     return alpha_tiles;
 }
-
 
 std::vector<hpx::shared_future<double *>> assemble_cross_covariance_tiles(
     const double *d_test_input,
@@ -381,7 +372,6 @@ std::vector<hpx::shared_future<double *>> assemble_cross_covariance_tiles(
     return cross_covariance_tiles;
 }
 
-
 std::vector<hpx::shared_future<double *>>
 assemble_tiles_with_zeros(std::size_t n_tile_size, std::size_t n_tiles, gprat::SYCL_DEVICE &sycl_device)
 {
@@ -392,12 +382,6 @@ assemble_tiles_with_zeros(std::size_t n_tile_size, std::size_t n_tiles, gprat::S
     }
     return tiles;
 }
-
-
-
-
-
-
 
 std::vector<hpx::shared_future<double *>> assemble_prior_K_tiles(
     const double *d_test_input,
@@ -416,7 +400,6 @@ std::vector<hpx::shared_future<double *>> assemble_prior_K_tiles(
     }
     return d_prior_K_tiles;
 }
-
 
 std::vector<hpx::shared_future<double *>> assemble_prior_K_tiles_full(
     const double *d_test_input,
@@ -451,13 +434,6 @@ std::vector<hpx::shared_future<double *>> assemble_prior_K_tiles_full(
     return d_prior_K_tiles;
 }
 
-
-
-
-
-
-
-
 std::vector<hpx::shared_future<double *>> assemble_t_cross_covariance_tiles(
     const std::vector<hpx::shared_future<double *>> &d_cross_covariance_tiles,
     const std::size_t n_tiles,
@@ -481,7 +457,6 @@ std::vector<hpx::shared_future<double *>> assemble_t_cross_covariance_tiles(
     }
     return d_t_cross_covariance_tiles;
 }
-
 
 std::vector<hpx::shared_future<double *>> assemble_y_tiles(
     const double *d_training_output, const std::size_t n_tiles, const std::size_t n_tile_size, gprat::SYCL_DEVICE &sycl_device)
@@ -564,7 +539,6 @@ std::vector<std::vector<double>> move_lower_tiled_matrix_to_host(
         return {};
     }
 }
-
 
 void free_lower_tiled_matrix(
     const std::vector<hpx::shared_future<double *>> &d_tiles, 
