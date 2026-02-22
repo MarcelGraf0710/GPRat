@@ -144,14 +144,35 @@ if command -v spack &> /dev/null; then
 			spack env activate gprat_gpu_clang
 
 			if [[ "$2" == "cuda" ]]; then
+
 				module load clang/17.0.1
 				export CXX=clang++
 				export CC=clang
 				module load cuda/12.0.1
+				CUDA_ARCH=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader | awk -F '.' '{print $1$2}')
 				GPRAT_WITH_CUDA=ON
 				GPRAT_WITH_SYCL=OFF
+
 			elif [[ "$2" == "sycl" ]]; then
-				echo "Please make sure that a DPC++ compiler is available in your PATH."
+
+				if command -v icpx --version &> /dev/null; then
+
+					export CXX=icpx
+					export CC=icx
+					GPRAT_WITH_CUDA=OFF
+					GPRAT_WITH_SYCL=ON
+					GPRAT_SYCL_AMD=ON
+					HIP_TARGETS="gfx90a"
+					CMAKE_PREFIX_PATH="/scratch-simcl1/grafml/Programs/oneMath_amd/oneMath/install/lib/cmake/oneMath:${CMAKE_PREFIX_PATH:-}"
+
+				else
+
+					echo "DPC++ compiler not found. Please make sure that a DPC++ compiler is available in your PATH." 1>&2
+					exit -1
+
+				fi
+
+				CUDA_ARCH=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader | awk -F '.' '{print $1$2}')
 				export CXX=icpx
 				export CC=icx
 				GPRAT_WITH_CUDA=OFF
@@ -159,21 +180,36 @@ if command -v spack &> /dev/null; then
 				GPRAT_SYCL_NVIDIA=ON
 				CMAKE_PREFIX_PATH="/scratch-simcl1/grafml/Programs/oneMath_nvidia/oneMath/install/lib/cmake/oneMath:${CMAKE_PREFIX_PATH:-}"
 			fi
-
 		fi
 
 	# simcl1n3 with AMD GPUs
 	elif [[ "$HOSTNAME" == "simcl1n3" ]]; then
 		echo "Support for host simcl1n3 is currently experimental."
 
-		if [[ "$2" == "sycl" ]]; then
-				echo "Please make sure that a DPC++ compiler is available in your PATH."
-				export CXX=icpx
-				export CC=icx
-				GPRAT_WITH_CUDA=OFF
-				GPRAT_WITH_SYCL=ON
-				GPRAT_SYCL_AMD=ON
-				CMAKE_PREFIX_PATH="/scratch-simcl1/grafml/Programs/oneMath_amd/oneMath/install/lib/cmake/oneMath:${CMAKE_PREFIX_PATH:-}"
+		# Check if the gprat_gpu_clang environment exists
+		if spack env list | grep -q "gprat_gpu_clang"; then
+
+			echo "Found gprat_gpu_clang environment, activating it."
+			spack env activate gprat_gpu_clang
+
+			if [[ "$2" == "sycl" ]]; then
+
+				if command -v icpx --version &> /dev/null; then
+					export CXX=icpx
+					export CC=icx
+					GPRAT_WITH_CUDA=OFF
+					GPRAT_WITH_SYCL=ON
+					GPRAT_SYCL_AMD=ON
+					HIP_TARGETS="gfx90a"
+					CMAKE_PREFIX_PATH="/scratch-simcl1/grafml/Programs/oneMath_amd/oneMath/install/lib/cmake/oneMath:${CMAKE_PREFIX_PATH:-}"
+
+				else
+
+					echo "DPC++ compiler not found. Please make sure that a DPC++ compiler is available in your PATH." 1>&2
+					exit -1
+
+				fi
+			fi
 		fi
 
 	# simcl1n4 without GPU
@@ -185,25 +221,37 @@ if command -v spack &> /dev/null; then
 		echo "The setup for host pcsgs04 is currently not supported."
 
 		if [[ "$2" == "sycl" ]]; then
-			echo "Please make sure that a DPC++ compiler is available in your PATH."
-			export CXX=icpx
-			export CC=icx
-			GPRAT_WITH_CUDA=OFF
-			GPRAT_WITH_SYCL=ON
-			GPRAT_SYCL_INTEL=ON
-			CMAKE_PREFIX_PATH="I AM A PLACEHOLDER PATH, PLEASE REPLACE ME WITH THE PATH TO YOUR oneMath INSTALLATION"
+
+			if command -v icpx --version &> /dev/null; then
+
+				export CXX=icpx
+				export CC=icx
+				GPRAT_WITH_CUDA=OFF
+				GPRAT_WITH_SYCL=ON
+				GPRAT_SYCL_INTEL=ON
+				CMAKE_PREFIX_PATH="I AM A PLACEHOLDER PATH, PLEASE REPLACE ME WITH THE PATH TO YOUR oneMath INSTALLATION"
+
+			else
+
+				echo "DPC++ compiler not found. Please make sure that a DPC++ compiler is available in your PATH." 1>&2
+				exit -1
+
+			fi
+
 		fi
 
 	# invalid hostnames
     else
+
     	echo "Hostname is $HOSTNAME — no action taken."
 
     fi
 
 # Assuming Spack is not found
 else
+
     echo "Spack command not found. Building example without Spack."
-    # Assuming that Spack is not required on given system
+
 fi
 
 ################################################################################
@@ -239,7 +287,6 @@ elif [[ $PRESET == "release-linux-cuda" || $PRESET == "dev-linux-cuda" ]]; then
 
 # SYCL build
 elif [[ $PRESET == "release-linux-sycl" || $PRESET == "dev-linux-sycl" ]]; then
-    CUDA_ARCH=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader | awk -F '.' '{print $1$2}')
 
     cmake --preset $PRESET \
 	-DCMAKE_PREFIX_PATH=$CMAKE_PREFIX_PATH \
@@ -254,6 +301,7 @@ elif [[ $PRESET == "release-linux-sycl" || $PRESET == "dev-linux-sycl" ]]; then
 	-DGPRAT_SYCL_NVIDIA=$GPRAT_SYCL_NVIDIA \
 	-DGPRAT_SYCL_AMD=$GPRAT_SYCL_AMD \
 	-DGPRAT_SYCL_INTEL=$GPRAT_SYCL_INTEL \
+	-DHIP_TARGETS=$HIP_TARGETS \
 	-DGPRAT_ENABLE_TESTS=ON \
 	-DGPRAT_ENABLE_EXAMPLES=ON \
 	-DCMAKE_EXPORT_COMPILE_COMMANDS=ON

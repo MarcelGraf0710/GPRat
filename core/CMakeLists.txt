@@ -9,6 +9,8 @@ option(GPRAT_SYCL_NVIDIA "Enable NVIDIA GPU support with oneMath SYCL backend" O
 option(GPRAT_SYCL_AMD "Enable AMD GPU support with oneMath SYCL backend" OFF)
 option(GPRAT_SYCL_INTEL "Enable Intel GPU support with oneMath SYCL backend" OFF)
 
+set(HIP_TARGETS "" CACHE STRING "Target HIP architectures")
+
 # CUDA
 option(GPRAT_WITH_CUDA "Enable GPU support with CUDA, cuSolver, cuBLAS" OFF)
 
@@ -125,6 +127,8 @@ if(GPRAT_WITH_SYCL)
       ${SYCL_FLAGS} 
       -fsycl 
       -fsycl-targets=amdgcn-amd-amdhsa 
+      -Xsycl-target-backend 
+      --offload-arch=${HIP_TARGETS}
     )
 
   elseif(GPRAT_SYCL_INTEL)
