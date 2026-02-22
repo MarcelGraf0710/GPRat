@@ -214,11 +214,22 @@ if command -v spack &> /dev/null; then
 
 	# simcl1n4 without GPU
 	elif [[ "$HOSTNAME" == "simcl1n4" ]]; then
-		echo "The setup for host simcl1n4 is currently under construction."
+
+		# Check if the gprat_cpu_gcc environment exists
+		if spack env list | grep -q "gprat_cpu_gcc"; then
+
+			echo "Found gprat_cpu_gcc environment, activating it."
+			module load gcc/14.2.0
+			export CXX=g++
+			export CC=gcc
+			spack env activate gprat_cpu_gcc
+
+		fi
 
 	# pcsgs04 with Intel GPU
 	elif [[ "$HOSTNAME" == "pcsgs04" ]]; then
 		echo "The setup for host pcsgs04 is currently not supported."
+		exit -1
 
 		if [[ "$2" == "sycl" ]]; then
 
