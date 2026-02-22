@@ -156,13 +156,25 @@ if command -v spack &> /dev/null; then
 				export CC=icx
 				GPRAT_WITH_CUDA=OFF
 				GPRAT_WITH_SYCL=ON
+				GPRAT_SYCL_NVIDIA=ON
+				CMAKE_PREFIX_PATH="/scratch-simcl1/grafml/Programs/oneMath_nvidia/oneMath/install/lib/cmake/oneMath:${CMAKE_PREFIX_PATH:-}"
 			fi
 
 		fi
 
 	# simcl1n3 with AMD GPUs
 	elif [[ "$HOSTNAME" == "simcl1n3" ]]; then
-		echo "Host simcl1n3 is currently not supported."
+		echo "Support for host simcl1n3 is currently experimental."
+
+		if [[ "$2" == "sycl" ]]; then
+				echo "Please make sure that a DPC++ compiler is available in your PATH."
+				export CXX=icpx
+				export CC=icx
+				GPRAT_WITH_CUDA=OFF
+				GPRAT_WITH_SYCL=ON
+				GPRAT_SYCL_AMD=ON
+				CMAKE_PREFIX_PATH="/scratch-simcl1/grafml/Programs/oneMath_amd/oneMath/install/lib/cmake/oneMath:${CMAKE_PREFIX_PATH:-}"
+		fi
 
 	# simcl1n4 without GPU
 	elif [[ "$HOSTNAME" == "simcl1n4" ]]; then
@@ -171,6 +183,16 @@ if command -v spack &> /dev/null; then
 	# pcsgs04 with Intel GPU
 	elif [[ "$HOSTNAME" == "pcsgs04" ]]; then
 		echo "The setup for host pcsgs04 is currently not supported."
+
+		if [[ "$2" == "sycl" ]]; then
+			echo "Please make sure that a DPC++ compiler is available in your PATH."
+			export CXX=icpx
+			export CC=icx
+			GPRAT_WITH_CUDA=OFF
+			GPRAT_WITH_SYCL=ON
+			GPRAT_SYCL_INTEL=ON
+			CMAKE_PREFIX_PATH="I AM A PLACEHOLDER PATH, PLEASE REPLACE ME WITH THE PATH TO YOUR oneMath INSTALLATION"
+		fi
 
 	# invalid hostnames
     else
@@ -220,6 +242,7 @@ elif [[ $PRESET == "release-linux-sycl" || $PRESET == "dev-linux-sycl" ]]; then
     CUDA_ARCH=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader | awk -F '.' '{print $1$2}')
 
     cmake --preset $PRESET \
+	-DCMAKE_PREFIX_PATH=$CMAKE_PREFIX_PATH \
 	-DGPRAT_BUILD_BINDINGS=$BINDINGS \
 	-DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
 	-DHPX_IGNORE_BOOST_COMPATIBILITY=ON \
@@ -228,6 +251,9 @@ elif [[ $PRESET == "release-linux-sycl" || $PRESET == "dev-linux-sycl" ]]; then
 	-DCMAKE_C_COMPILER=$(which icx) \
     -DCMAKE_CXX_COMPILER=$(which icpx) \
 	-DGPRAT_WITH_SYCL=ON \
+	-DGPRAT_SYCL_NVIDIA=$GPRAT_SYCL_NVIDIA \
+	-DGPRAT_SYCL_AMD=$GPRAT_SYCL_AMD \
+	-DGPRAT_SYCL_INTEL=$GPRAT_SYCL_INTEL \
 	-DGPRAT_ENABLE_TESTS=ON \
 	-DGPRAT_ENABLE_EXAMPLES=ON \
 	-DCMAKE_EXPORT_COMPILE_COMMANDS=ON

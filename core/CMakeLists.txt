@@ -1,7 +1,15 @@
 # Inner CMakeLists.txt
 
 ### Options #######################################################################################
+
+# SYCL
 option(GPRAT_WITH_SYCL "Enable SYCL support with oneMath" OFF)
+
+option(GPRAT_SYCL_NVIDIA "Enable NVIDIA GPU support with oneMath SYCL backend" OFF)
+option(GPRAT_SYCL_AMD "Enable AMD GPU support with oneMath SYCL backend" OFF)
+option(GPRAT_SYCL_INTEL "Enable Intel GPU support with oneMath SYCL backend" OFF)
+
+# CUDA
 option(GPRAT_WITH_CUDA "Enable GPU support with CUDA, cuSolver, cuBLAS" OFF)
 
 add_compile_definitions(
@@ -43,7 +51,6 @@ if(GPRAT_WITH_SYCL)
     src/gpu/sycl/sycl_tiled_algorithms.cpp
     )
 endif()
-#src/sycl/sycl_kernels.cpp
 
 # Add CUDA-specific source files if enabled
 if(GPRAT_WITH_CUDA)
@@ -58,13 +65,6 @@ if(GPRAT_WITH_CUDA)
     src/gpu/cuda/adapter_cublas.cu
     src/gpu/cuda/cuda_kernels.cu)
 endif()
-
-message(STATUS "Added source files:")
-
-foreach(source ${SOURCE_FILES})
-  message("   ${source}")
-endforeach()
-
 
 ### Add GPRat core library ########################################################################
 
@@ -86,11 +86,6 @@ file(GLOB_RECURSE header_files CONFIGURE_DEPENDS include/*.hpp
 if(GPRAT_WITH_SYCL)
   file(GLOB_RECURSE sycl_headers CONFIGURE_DEPENDS include/sycl/*.hpp)
   list(APPEND header_files ${sycl_headers})
-
-  message(STATUS "Added SYCL headers:")
-  foreach(header ${sycl_headers})
-    message("   ${header}")
-  endforeach()
 endif()
 
 if(GPRAT_WITH_CUDA)
@@ -110,38 +105,73 @@ if(GPRAT_WITH_CUDA)
   target_link_libraries(gprat_core PUBLIC CUDA::cusolver CUDA::cublas)
 endif()
 
-
-# --- SYCL / oneMath linking --------------------------------------------------
+# SYCL / oneMath linking
 if(GPRAT_WITH_SYCL)
 
-  # simcl1
-  list(APPEND CMAKE_PREFIX_PATH "/scratch-simcl1/grafml/Programs/oneMath/install/lib/cmake/oneMath")
-  # set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-fsycl -fsycl-targets=nvptx64-nvidia-cuda -Xsycl-target-backend=nvptx64-nvidia-cuda")
-  message(STATUS "CMAKE_CXX_FLAGS = ${CMAKE_CXX_FLAGS}")
-  message(STATUS "SYCL_FLAGS = ${SYCL_FLAGS}")
-
-  # pcsgs11
-  # list(APPEND CMAKE_PREFIX_PATH "/home/grafml/Programs/theRealOneMath/oneMath/install/lib/cmake/oneMath")
-
-  message(STATUS "CMAKE_PREFIX_PATH = ${CMAKE_PREFIX_PATH}")
   find_package(oneMath REQUIRED)
 
-  set(SYCL_FLAGS 
-    ${SYCL_FLAGS} 
-    -fsycl 
-    -fsycl-targets=nvptx64-nvidia-cuda 
-    -Xsycl-target-backend=nvptx64-nvidia-cuda 
-    --cuda-gpu-arch=sm_80
-  )
+  # Select SYCL backend architecture
+  if(GPRAT_SYCL_NVIDIA)
+
+    set(SYCL_FLAGS 
+      ${SYCL_FLAGS} 
+      -fsycl 
+      -fsycl-targets=nvptx64-nvidia-cuda 
+    )
+
+  elseif(GPRAT_SYCL_AMD)
+
+    set(SYCL_FLAGS 
+      ${SYCL_FLAGS} 
+      -fsycl 
+      -fsycl-targets=amdgcn-amd-amdhsa 
+    )
+
+  elseif(GPRAT_SYCL_INTEL)
+
+    set(SYCL_FLAGS 
+      ${SYCL_FLAGS} 
+      -fsycl 
+      -fsycl-targets=spir64
+    )
+
+  else()
+
+    message(FATAL_ERROR "No SYCL backend specified. Please enable one of GPRAT_SYCL_NVIDIA, GPRAT_SYCL_AMD, or GPRAT_SYCL_INTEL.")
+
+  endif()
+
   target_compile_options(gprat_core PUBLIC ${SYCL_FLAGS})
 
-  # target_link_options(gprat_core PRIVATE -Xsycl-target-backend --fsycl-targets=sm_80)
   target_link_options(gprat_core PUBLIC ${SYCL_FLAGS})
 
-  target_link_libraries(gprat_core PUBLIC
-    ONEMATH::onemath_blas_cublas
-    ONEMATH::onemath_lapack_cusolver
-  )
+  # Set link libraries based on SYCL backend
+  if(GPRAT_SYCL_NVIDIA)
+
+    target_link_libraries(gprat_core PUBLIC
+      ONEMATH::onemath_blas_cublas
+      ONEMATH::onemath_lapack_cusolver
+    )
+
+  elseif(GPRAT_SYCL_AMD)
+
+    target_link_libraries(gprat_core PUBLIC
+      ONEMATH::onemath_blas_rocblas
+      ONEMATH::onemath_lapack_rocsolver
+    )
+
+  elseif(GPRAT_SYCL_INTEL)
+
+    target_link_libraries(gprat_core PUBLIC
+      ONEMATH::onemath_blas_oneMKL
+      ONEMATH::onemath_lapack_oneMKL
+    )
+
+  else()
+
+    message(FATAL_ERROR "No SYCL backend specified. Please enable one of GPRAT_SYCL_NVIDIA, GPRAT_SYCL_AMD, or GPRAT_SYCL_INTEL.")
+
+  endif()
 
   if (TARGET ONEMATH::onemath)
     target_link_libraries(gprat_core PUBLIC ONEMATH::onemath)
