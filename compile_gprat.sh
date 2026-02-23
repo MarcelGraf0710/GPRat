@@ -157,13 +157,13 @@ if command -v spack &> /dev/null; then
 
 				if command -v icpx --version &> /dev/null; then
 
+					CUDA_ARCH=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader | awk -F '.' '{print $1$2}')
 					export CXX=icpx
 					export CC=icx
 					GPRAT_WITH_CUDA=OFF
 					GPRAT_WITH_SYCL=ON
-					GPRAT_SYCL_AMD=ON
-					HIP_TARGETS="gfx90a"
-					CMAKE_PREFIX_PATH="/scratch-simcl1/grafml/Programs/oneMath_amd/oneMath/install/lib/cmake/oneMath:${CMAKE_PREFIX_PATH:-}"
+					GPRAT_SYCL_NVIDIA=ON
+					CMAKE_PREFIX_PATH="/scratch-simcl1/grafml/Programs/oneMath_nvidia/oneMath/install/lib/cmake/oneMath:${CMAKE_PREFIX_PATH:-}"
 
 				else
 
@@ -172,14 +172,8 @@ if command -v spack &> /dev/null; then
 
 				fi
 
-				CUDA_ARCH=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader | awk -F '.' '{print $1$2}')
-				export CXX=icpx
-				export CC=icx
-				GPRAT_WITH_CUDA=OFF
-				GPRAT_WITH_SYCL=ON
-				GPRAT_SYCL_NVIDIA=ON
-				CMAKE_PREFIX_PATH="/scratch-simcl1/grafml/Programs/oneMath_nvidia/oneMath/install/lib/cmake/oneMath:${CMAKE_PREFIX_PATH:-}"
 			fi
+			
 		fi
 
 	# simcl1n3 with AMD GPUs

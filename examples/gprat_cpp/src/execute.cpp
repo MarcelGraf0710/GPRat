@@ -4,9 +4,6 @@
 #include <fstream>
 #include <iostream>
 
-// Test 
-// #include <hpx/include/async.hpp>
-
 namespace gprat::example
 {
     struct Runtimes
@@ -229,7 +226,7 @@ int main(int argc, char *argv[])
     std::string test_path = "../../../../data/data_1024/test_input.txt";
 
     bool use_gpu =
-        utils::compiled_with_cuda() && gprat::gpu_count() > 0 && argc > 1 && std::strcmp(argv[1], "--use_gpu") == 0;
+        utils::compiled_with_cuda() && gprat::gpu_count() > 0 && argc > 1 && std::strcmp(argv[1], "--use_cuda") == 0;
 
     bool use_sycl =
         utils::compiled_with_sycl() && gprat::gpu_count() > 0 && argc > 1 && std::strcmp(argv[1], "--use_sycl") == 0;
