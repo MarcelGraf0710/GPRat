@@ -1,5 +1,7 @@
 #!/bin/bash
-# $1 cpu/gpu
+# $1 cpu/cuda/sycl
+# $2 mkl/none
+# $3 SYCL with nvidia/amd/intel
 
 ################################################################################
 set -e  # Exit immediately if a command exits with a non-zero status.
@@ -70,14 +72,28 @@ if command -v spack &> /dev/null; then
 			spack env activate gprat_cpu_arm
 		fi
 
-    elif [[ "$HOSTNAME" == "simcl1n1" || "$HOSTNAME" == "simcl1n2" ]]; then
+    elif [[ "$HOSTNAME" == "simcl1n1" || "$HOSTNAME" == "simcl1n2" || "$HOSTNAME" == "simcl1n3" ]]; then
 
 		# Check if the gprat_gpu_clang environment exists
 		if spack env list | grep -q "gprat_gpu_clang"; then
 
 			echo "Found gprat_gpu_clang environment, activating it."
 			spack env activate gprat_gpu_clang
-			CMAKE_PREFIX_PATH="/scratch-simcl1/grafml/Programs/oneMath_nvidia/oneMath/install/lib/cmake/oneMath:${CMAKE_PREFIX_PATH:-}"
+
+			if [[ "$3" == "nvidia" ]]; then
+
+				CMAKE_PREFIX_PATH="/scratch-simcl1/grafml/Programs/oneMath_nvidia/oneMath/install/lib/cmake/oneMath:${CMAKE_PREFIX_PATH:-}"
+
+			elif [[ "$3" == "amd" ]]; then
+
+				CMAKE_PREFIX_PATH="/scratch-simcl1/grafml/Programs/oneMath_amd/oneMath/install/lib/cmake/oneMath:${CMAKE_PREFIX_PATH:-}"
+
+			elif [[ "$3" == "intel" ]]; then
+
+				echo "The Intel setup is not supported yet." 1>&2
+				exit 1
+
+			fi
 
 			if [[ "$1" == "cuda" ]]; then
 

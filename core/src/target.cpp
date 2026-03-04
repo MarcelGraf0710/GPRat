@@ -32,7 +32,6 @@ CPU get_cpu() { return CPU(); }
 // CUDA ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #if GPRAT_WITH_CUDA
-
 CUDA_GPU::CUDA_GPU(int id, int n_streams) :
     id(id),
     n_streams(n_streams),
@@ -40,16 +39,12 @@ CUDA_GPU::CUDA_GPU(int id, int n_streams) :
     shared_memory_size(0),
     streams()
 {
-#if GPRAT_WITH_CUDA
     int deviceCount;
     cudaGetDeviceCount(&deviceCount);
     if (id >= deviceCount)
     {
         throw std::runtime_error("Requested GPU device is not available.");
     }
-#else
-    throw std::runtime_error("CUDA is not available because GPRat has been compiled without CUDA.");
-#endif
 }
 
 bool CUDA_GPU::is_cpu() { return false; }
@@ -128,9 +123,9 @@ CUDA_GPU get_gpu() { return CUDA_GPU(0, 1); }
 
 #if GPRAT_WITH_SYCL
 
-SYCL_DEVICE::SYCL_DEVICE(const DeviceParameters &parameters) :
-    id(parameters.id),
-    n_queues(parameters.n_queues),
+SYCL_DEVICE::SYCL_DEVICE(int id, int n_queues) :
+    id(id),
+    n_queues(n_queues),
     i_queue(0),
     local_memory_size(0),
     queues()
@@ -232,9 +227,9 @@ void SYCL_DEVICE::sync_queues(std::vector<sycl::queue> &subset_of_queues)
     }
 }
 
-SYCL_DEVICE get_sycl_device(const std::size_t id, const std::size_t n_queues) { return SYCL_DEVICE(DeviceParameters {id, n_queues}); }
+SYCL_DEVICE get_sycl_device(const std::size_t id, const std::size_t n_queues) { return SYCL_DEVICE(id, n_queues); }
 
-SYCL_DEVICE get_sycl_device() { return SYCL_DEVICE(DeviceParameters {0, 1}); }
+SYCL_DEVICE get_sycl_device() { return SYCL_DEVICE(0, 1); }
 
 #endif
 

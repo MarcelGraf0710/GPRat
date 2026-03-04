@@ -65,7 +65,7 @@ n_reg(n_regressors),
 kernel_params(kernel_hyperparams[0], kernel_hyperparams[1], kernel_hyperparams[2])
 {}
 
-// CUDA-type constructor of class GP //////////////////////////////////////////////////////////////
+/// GPU constructor ///////////////////////////////////////////////////////////////////////////////////////////////////
 GP::GP(
     std::vector<double> input,
     std::vector<double> output,
@@ -75,7 +75,7 @@ GP::GP(
     std::vector<double> kernel_hyperparams,
     std::vector<bool> trainable_bool,
     int gpu_id,
-    int n_streams
+    int n_units
 ) 
 :
 training_input_(input),
@@ -85,62 +85,29 @@ n_tile_size_(n_tile_size),
 trainable_params_(trainable_bool),
 
 #if GPRAT_WITH_CUDA
-target_(std::make_shared<CUDA_GPU>(CUDA_GPU(gpu_id, n_streams))),
+    target_(std::make_shared<CUDA_GPU>(CUDA_GPU(gpu_id, n_units))),
+
+#elif GPRAT_WITH_SYCL
+    target_(std::make_shared<SYCL_DEVICE>(SYCL_DEVICE(gpu_id, n_units))),
 
 #else
-target_(std::make_shared<CPU>()),
+    target_(std::make_shared<CPU>()),
 
 #endif
 n_reg(n_regressors),
 kernel_params(kernel_hyperparams[0], kernel_hyperparams[1], kernel_hyperparams[2])
 {
 
-    #if !GPRAT_WITH_CUDA
+    #if !GPRAT_WITH_CUDA && !GPRAT_WITH_SYCL
     throw std::runtime_error(
-        "Cannot create GP object using CUDA for computation. "
-        "CUDA is not available because GPRat has been compiled without CUDA. "
+        "Cannot create GP object using CUDA or SYCL for computation. "
+        "CUDA and SYCL are not available because GPRat has been compiled without CUDA and SYCL support. "
         "Remove arguments gpu_id ("
-        + std::to_string(gpu_id) + ") and n_streams (" + std::to_string(n_streams)
+        + std::to_string(gpu_id) + ") and n_units (" + std::to_string(n_units)
         + ") to perform computations on the CPU."
     );
     #endif
 
-}
-
-// SYCL-type constructor of class GP //////////////////////////////////////////////////////////////
-GP::GP(
-  std::vector<double> input,
-  std::vector<double> output,
-  int n_tiles,
-  int n_tile_size,
-  int n_regressors,
-  std::vector<double> kernel_hyperparams,
-  std::vector<bool> trainable_bool,
-  const DeviceParameters &parameters
-) 
-:
-training_input_(input),
-training_output_(output),
-n_tiles_(n_tiles),
-n_tile_size_(n_tile_size),
-trainable_params_(trainable_bool),
-
-#if GPRAT_WITH_SYCL
-target_(std::make_shared<SYCL_DEVICE>(parameters)),
-
-#else
-target_(std::make_shared<CPU>()),
-#endif
-
-n_reg(n_regressors),
-kernel_params(kernel_hyperparams[0], kernel_hyperparams[1], kernel_hyperparams[2])
-{
-    #if !GPRAT_WITH_SYCL
-    throw std::runtime_error(
-        "Cannot create GP object using SYCL for computation. "
-        "SYCL is not available because GPRat has been compiled without SYCL. "
-        "Remove argument parameters to perform computations on the CPU.");
-    #endif
 }
 
 std::string GP::repr() const
@@ -302,75 +269,6 @@ GP::predict_with_uncertainty(const std::vector<double> &test_input, int m_tiles,
         // ---- SYCL --------------------------------------------------------------------------------------------------
         if (!target_->is_cpu())
         {
-                // ////// MWE STARTS HERE
-
-                // sycl::queue queue_q{sycl::gpu_selector_v};
-
-                // // queue_q.wait();
-
-                // // Example: 3x3 matrix
-                // const std::int64_t t = 3;
-                // const std::int64_t s = 3;
-                // const std::int64_t lda = t; // leading dimension
-                // const std::int64_t incx = 1;
-                // const std::int64_t incy = 1;
-
-                // // Host data
-                // std::vector<double> A = {1.0, 4.0, 7.0,  // column-major layout
-                //                         2.0, 5.0, 8.0,
-                //                         3.0, 6.0, 9.0};
-                // std::vector<double> x = {1.0, 2.0, 3.0};
-                // std::vector<double> y = {0.5, 1.0, 1.5};
-
-                // double alpha = 2.0;
-                // double beta  = 0.5;
-
-                // // Device buffers
-                // double *d_A = sycl::malloc_device<double>(A.size(), queue_q);
-                // double *d_x = sycl::malloc_device<double>(x.size(), queue_q);
-                // double *d_y = sycl::malloc_device<double>(y.size(), queue_q);
-
-                // // Copy data to device
-                // auto event1 = queue_q.memcpy(d_A, A.data(), sizeof(double) * A.size());
-                // auto event2 = queue_q.memcpy(d_x, x.data(), sizeof(double) * x.size());
-                // auto event3 = queue_q.memcpy(d_y, y.data(), sizeof(double) * y.size());
-                // // queue_q.wait();
-                // event1.wait();
-                // event2.wait();
-                // event3.wait();
-
-                // // Perform GEMV: y = alpha * A * x + beta * y
-                // sycl::event e = oneapi::math::blas::column_major::gemv(queue_q,
-                //                         oneapi::math::transpose::nontrans,
-                //                         t,
-                //                         s,
-                //                         alpha,
-                //                         d_A,
-                //                         lda,
-                //                         d_x,
-                //                         incx,
-                //                         beta,
-                //                         d_y,
-                //                         incy);
-
-                // // Wait for computation to finish
-                // e.wait();
-
-                // // Copy result back to host
-                // queue_q.memcpy(y.data(), d_y, sizeof(double) * y.size()).wait();
-
-                // // Print result
-                // std::cout << "Result y:\n";
-                // for (double v : y) std::cout << v << " ";
-                // std::cout << "\n";
-
-                // // Free device memory
-                // sycl::free(d_A, queue_q);
-                // sycl::free(d_x, queue_q);
-                // sycl::free(d_y, queue_q);
-
-                // ////// MWE ENDS HERE
-
             return sycl_backend::predict_with_uncertainty(
                 training_input_,
                 training_output_,

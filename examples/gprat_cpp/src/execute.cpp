@@ -121,7 +121,7 @@ namespace gprat::example
         std::vector<bool> trainable
     )
     {
-        target = "gpu";
+        target = "cuda";
 
         auto start_init = std::chrono::high_resolution_clock::now();
         gprat::GP gp_gpu(
@@ -185,7 +185,8 @@ namespace gprat::example
                     n_reg,
                     std::vector<double>{1.0, 1.0, 0.1},
                     trainable,
-                    gprat::DeviceParameters{device_id, n_queues}
+                    device_id, 
+                    n_queues
         );
 
         auto end_init = std::chrono::high_resolution_clock::now();

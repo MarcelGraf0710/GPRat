@@ -157,7 +157,7 @@ class GP
      *                           parameter of squared exponential kernel
      * @param trainable_bool Vector indicating which parameters are trainable
      * @param gpu_id GPU identifier
-     * @param n_streams Number of CUDA streams for GPU computations
+     * @param n_units Number of CUDA streams / SYCL queues for GPU computations
      */
     GP(std::vector<double> input,
        std::vector<double> output,
@@ -167,32 +167,7 @@ class GP
        std::vector<double> kernel_hyperparams,
        std::vector<bool> trainable_bool,
        int gpu_id,
-       int n_streams);
-
-/// SYCL constructor //////////////////////////////////////////////////////////////////////////////////////////////////
-
-    /**
-     * @brief Constructs a Gaussian Process (GP) for SYCL computations
-     *
-     * @param input Input data for training of the GP
-     * @param output Expected output data for training of the GP
-     * @param n_tiles Number of tiles
-     * @param n_tile_size Size of each tile in each dimension
-     * @param n_regressors Number of regressors
-     * @param kernel_hyperparams Vector including lengthscale,
-     *                           vertical lengthscale, and noise variance
-     *                           parameter of squared exponential kernel
-     * @param trainable_bool Vector indicating which parameters are trainable
-     * @param DeviceParameters struct containing SYCL device parameters for computations
-     */
-    GP(std::vector<double> input,
-       std::vector<double> output,
-       int n_tiles,
-       int n_tile_size,
-       int n_regressors,
-       std::vector<double> kernel_hyperparams,
-       std::vector<bool> trainable_bool,
-       const DeviceParameters &parameters);
+       int n_units);
 
 /// Class methods /////////////////////////////////////////////////////////////////////////////////////////////////////
 

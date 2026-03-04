@@ -246,7 +246,7 @@ struct SYCL_DEVICE : public Target
     /**
      * @brief Returns GPU target that uses SYCL.
      */
-    SYCL_DEVICE(const DeviceParameters &parameters);
+    SYCL_DEVICE(int gpu_id, int n_queues);
 
     /**
      * @brief Returns false because target is not CPU.

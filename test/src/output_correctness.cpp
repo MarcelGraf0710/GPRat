@@ -310,7 +310,8 @@ GpratResults run_on_data_sycl(
         n_reg,
         { 1.0, 1.0, 0.1 },
         trainable,
-        gprat::DeviceParameters{device_id, n_queues}
+        device_id, 
+        n_queues
     ); 
 
     GpratResults results_sycl;
