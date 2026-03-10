@@ -32,7 +32,7 @@ vector_future trsm(vector_future f_L,
     auto L = f_L.get();
     auto A = f_A.get();
     // TRSM constants
-    const float alpha = 1.0;
+    const float alpha = 1.0f;
     // TRSM: in-place solve L(^T) * X = A or X * L(^T) = A where L lower triangular
     cblas_strsm(
         CblasRowMajor,
@@ -56,8 +56,8 @@ vector_future syrk(vector_future f_A, vector_future f_B, const int N)
     auto B = f_B.get();
     auto A = f_A.get();
     // SYRK constants
-    const float alpha = -1.0;
-    const float beta = 1.0;
+    const float alpha = -1.0f;
+    const float beta = 1.0f;
     // SYRK:A = A - B * B^T
     cblas_ssyrk(CblasRowMajor, CblasLower, CblasNoTrans, N, N, alpha, B.data(), N, beta, A.data(), N);
     // return updated matrix A
@@ -78,8 +78,8 @@ gemm(vector_future f_A,
     auto B = f_B.get();
     auto A = f_A.get();
     // GEMM constants
-    const float alpha = -1.0;
-    const float beta = 1.0;
+    const float alpha = -1.0f;
+    const float beta = 1.0f;
     // GEMM: C = C - A(^T) * B(^T)
     cblas_sgemm(
         CblasRowMajor,
@@ -133,7 +133,7 @@ vector_future gemv(vector_future f_A,
     auto b = f_b.get();
     // GEMV constants
     // const float alpha = -1.0;
-    const float beta = 1.0;
+    const float beta = 1.0f;
     // GEMV:  b{N} = b{N} - A(^T){NxM} * a{M}
     cblas_sgemv(
         CblasRowMajor,
@@ -184,7 +184,7 @@ vector_future axpy(vector_future f_y, vector_future f_x, const int N)
 {
     auto y = f_y.get();
     auto x = f_x.get();
-    cblas_saxpy(N, -1.0, x.data(), 1, y.data(), 1);
+    cblas_saxpy(N, -1.0f, x.data(), 1, y.data(), 1);
     return hpx::make_ready_future(y);
 }
 
