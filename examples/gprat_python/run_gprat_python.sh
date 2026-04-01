@@ -120,7 +120,16 @@ fi
 
 ### EXECUTION #####################################################################################
 
-end_cores=$(python3 -c "import json; print(json.load(open('config.json'))['END_CORES'])")
-core_count=$((end_cores * 2))
+for n_cores in 1 6 12 24 48
+do
 
-taskset -c 0-$core_count:2 python execute.py $GPU
+	end_cores=$((n_cores / 2))
+
+	for n_tiles in 1 2 4 8 16 32
+	do
+
+		taskset -c 0-$core_count:2 python execute.py $GPU --n-cores $n_cores --n-tiles $n_tiles
+
+	done
+
+done
